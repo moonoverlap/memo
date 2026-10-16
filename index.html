@@ -177,6 +177,9 @@ svg{flex:none}
 .back{display:none;margin-left:-12px}
 #editor{flex:1;min-height:0;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--paper-ink);font:inherit;font-size:16px;line-height:1.8;letter-spacing:-.005em;padding-block:26px 48px;padding-inline:max(26px, calc((100% - 720px) / 2))}
 #editor::placeholder{color:var(--paper-muted)}
+#editor::-webkit-scrollbar{width:8px}
+#editor::-webkit-scrollbar-thumb{background:var(--paper-line);border-radius:4px}
+#editor::-webkit-scrollbar-track{background:transparent}
 .ed-foot{display:flex;gap:14px;justify-content:flex-end;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--paper-line);font-size:12px;color:var(--paper-muted);font-variant-numeric:tabular-nums}
 .ed-foot b{font-weight:600;color:var(--paper-ink)}
 .color-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:6;display:flex;gap:6px;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
@@ -243,11 +246,12 @@ body.note-mode{padding:0}
 .note-mode .app{grid-template-columns:minmax(0, 1fr);gap:0}
 .note-mode .list-pane,.note-mode .fab,.note-mode .back,.note-mode #delBtn,.note-mode .pop-btn,.note-mode .tear-btn,.note-mode #edNew{display:none !important}
 .note-mode .editor-pane{display:flex !important;border:0;border-radius:0;box-shadow:none}
-.note-mode .ed-head{min-height:42px;padding:4px 6px 4px 14px}
+.note-mode .ed-meta,.note-mode .ed-foot,.note-mode #pinBtn{display:none !important}
+.note-mode .ed-head{min-height:34px;padding:2px 4px;justify-content:flex-end;border-bottom:0}
 .note-mode .ed-actions .lbl{display:none}
-.note-mode .ed-actions .icon-btn{padding:0 8px;height:32px}
-.note-mode #editor{padding:14px 16px 20px;font-size:15px;line-height:1.7}
-.note-mode .ed-foot{justify-content:space-between;padding:7px 12px}
+.note-mode .ed-actions .icon-btn{padding:0 7px;height:28px;opacity:.55;transition:opacity .15s}
+.note-mode .ed-head:hover .icon-btn,.note-mode .ed-actions .icon-btn:focus-visible,.note-mode .ed-actions .icon-btn[aria-expanded="true"]{opacity:1}
+.note-mode #editor{padding:8px 16px 16px;font-size:15px;line-height:1.7}
 .note-hint{display:none;margin-right:auto}
 .note-mode .note-hint{display:inline}
 .note-mode .c-nosp{display:none}
@@ -683,7 +687,11 @@ service cloud.firestore {
       }
     }
     paintPaper(el.edBody, m);
-    if (NOTE_ID) document.body.style.background = COLORS[colorKey(m)].bg;
+    if (NOTE_ID) {
+      document.body.style.background = COLORS[colorKey(m)].bg;
+      const tc = document.getElementById('themeColor');
+      if (tc) tc.setAttribute('content', COLORS[colorKey(m)].bar);
+    }
     renderColorPop(m);
     el.pin.setAttribute('aria-pressed', m.pinned ? 'true' : 'false');
     el.pinLbl.textContent = m.pinned ? '고정됨' : '고정';
@@ -1022,19 +1030,19 @@ service cloud.firestore {
     *,*::before,*::after{box-sizing:border-box}
     [hidden]{display:none !important}
     html,body{margin:0;height:100%}
-    body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
-    .pip{display:flex;flex-direction:column;height:100%}
-    .pip-head{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 14px;background:var(--surface);border-bottom:1px solid var(--line);font-size:12.5px}
-    .pip-title{flex:1;min-width:0;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:var(--accent-text)}
-    .pip-title svg{display:inline-block;vertical-align:-2px;margin-right:6px}
-    .pip-count{flex:none;color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap}
-    .pip-list{flex:1;min-height:0;overflow-y:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));gap:10px;align-content:start}
-    .pip-card{display:flex;flex-direction:column;min-width:0;background:var(--paper, #FFF4A8);border:1px solid var(--paper-bar, #FBE57A);border-radius:12px;padding:10px 12px 6px;color:#2A2718;box-shadow:0 1px 2px rgba(0,0,0,.06)}
-    .pip-card:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-    .pip-text{display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:#2A2718;font:inherit;font-size:14px;line-height:1.65;padding:0;max-height:360px;overflow-y:auto}
-    .pip-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;font-size:11.5px;color:rgba(42,39,24,.6);font-variant-numeric:tabular-nums}
-    .pip-foot .acts{display:flex;gap:2px}
-    .pip-foot button{border:0;background:none;color:rgba(42,39,24,.72);font:inherit;cursor:pointer;padding:3px 6px;border-radius:6px}
+    body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
+    .pip{height:100%;display:flex;flex-direction:column}
+    .pip-list{flex:1;min-height:0;overflow-y:auto;padding:6px;display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));grid-auto-rows:minmax(150px, 1fr);gap:6px}
+    .pip-card{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--paper, #FFF4A8);border-radius:8px;color:#2A2718;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+    .pip-card:focus-within{box-shadow:0 0 0 2px var(--accent)}
+    .pip-text{flex:1;min-height:0;display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:#2A2718;font:inherit;font-size:14.5px;line-height:1.65;padding:12px 14px 4px;overflow-y:auto}
+    .pip-text::-webkit-scrollbar{width:6px}
+    .pip-text::-webkit-scrollbar-thumb{background:rgba(42,39,24,.22);border-radius:3px}
+    .pip-text::-webkit-scrollbar-track{background:transparent}
+    .pip-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 8px 6px 14px;font-size:11.5px;color:rgba(42,39,24,.55);font-variant-numeric:tabular-nums}
+    .pip-foot .acts{display:flex;gap:2px;opacity:.55;transition:opacity .15s}
+    .pip-card:hover .pip-foot .acts,.pip-card:focus-within .pip-foot .acts{opacity:1}
+    .pip-foot button{border:0;background:none;color:rgba(42,39,24,.8);font:inherit;cursor:pointer;padding:3px 6px;border-radius:6px}
     .pip-foot button:hover{background:rgba(42,39,24,.08);color:#2A2718}
     .pip-empty{margin:0;padding:18px 14px;color:var(--muted);line-height:1.65}
     :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -1093,15 +1101,13 @@ service cloud.firestore {
     st.textContent = document.getElementById('tokens').textContent + PIP_CSS;
     d.head.append(st);
     d.body.innerHTML = '<div class="pip">'
-      + '<header class="pip-head"><span class="pip-title">' + PIN_SMALL + '항상 위 메모</span><span class="pip-count" id="pipCount"></span></header>'
       + '<div class="pip-list" id="pipList"></div>'
       + '<p class="pip-empty" id="pipEmpty" hidden>띄운 메모가 없어요. 앱에서 메모를 열고 띄우기를 누르세요.</p></div>';
-    pip = { win, d, list: d.getElementById('pipList'), count: d.getElementById('pipCount'), empty: d.getElementById('pipEmpty'), cards: new Map() };
+    pip = { win, d, list: d.getElementById('pipList'), empty: d.getElementById('pipEmpty'), cards: new Map() };
 
     d.body.addEventListener('input', (e) => {
       const ta = e.target;
       if (!ta.dataset || !ta.dataset.id) return;
-      autoGrow(ta);
       editMemo(ta.dataset.id, ta.value, 'pip');
     });
     d.body.addEventListener('focusout', (e) => {
@@ -1126,11 +1132,6 @@ service cloud.firestore {
     let rt = 0;
     win.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => setFloatSize(win.innerWidth, win.innerHeight), 400); });
     renderPip(); renderFloat();
-  }
-
-  function autoGrow(ta) {
-    ta.style.height = 'auto';
-    ta.style.height = Math.min(ta.scrollHeight, 360) + 'px';
   }
 
   // 사용자가 지금 그 칸에 쓰고 있으면 내용을 덮어쓰지 않는다
@@ -1158,7 +1159,7 @@ service cloud.firestore {
   function renderPip() {
     if (!pip) return;
     const list = floatedMemos();
-    pip.count.textContent = list.length ? list.length + '개' : '';
+    pip.d.title = list.length ? '항상 위 메모 ' + list.length + '개' : '항상 위 메모';
     pip.empty.hidden = list.length > 0;
     const keep = new Set();
     list.forEach((m, i) => {
@@ -1166,7 +1167,7 @@ service cloud.firestore {
       const c = pip.cards.get(m.id) || makePipCard(m.id);
       if (pip.list.children[i] !== c.root) pip.list.insertBefore(c.root, pip.list.children[i] || null);
       paintPaper(c.root, m);
-      if (!pipTyping(c.ta) && c.ta.value !== m.body) { c.ta.value = m.body; autoGrow(c.ta); }
+      if (!pipTyping(c.ta) && c.ta.value !== m.body) c.ta.value = m.body;
       c.time.textContent = relTime(m.updatedAt || m.createdAt || Date.now());
     });
     for (const [id, c] of pip.cards) if (!keep.has(id)) { c.root.remove(); pip.cards.delete(id); }
@@ -1196,7 +1197,7 @@ service cloud.firestore {
     roots.forEach((r) => { if (t === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t); });
     const dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     const meta = document.getElementById('themeColor');
-    if (meta) meta.setAttribute('content', dark ? '#0A0F1C' : '#F4F6FB');
+    if (meta && !NOTE_ID) meta.setAttribute('content', dark ? '#0A0F1C' : '#F4F6FB');
   }
   function renderSizeControls() {
     if (document.activeElement !== el.sizeW) el.sizeW.value = floatSize.w;
