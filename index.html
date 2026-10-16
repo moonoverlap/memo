@@ -97,6 +97,21 @@ svg{flex:none}
   gap:20px;
 }
 
+/* ── 접힌 메뉴 (PC): 목록을 접으면 얇은 버튼 줄만 남김 ── */
+.rail{display:none;flex-direction:column;align-items:center;gap:8px;padding-top:2px}
+.rail .icon-btn.square{width:40px;height:40px}
+.rail .rail-new{background:var(--accent);color:var(--accent-ink)}
+.rail .rail-new:hover{background:var(--accent);color:var(--accent-ink);filter:brightness(1.07)}
+.rail .rail-float[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-text)}
+@media (min-width: 760px){
+  body:not(.note-mode) .app.collapsed{grid-template-columns:40px minmax(0, 1fr)}
+  body:not(.note-mode) .app.collapsed .list-pane{display:none}
+  body:not(.note-mode) .app.collapsed .rail{display:flex}
+}
+@media (max-width: 759px){
+  #collapseBtn{display:none}
+}
+
 /* ── 목록 ── */
 .list-pane{display:flex;flex-direction:column;min-height:0;min-width:0}
 .list-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:2px 2px 14px}
@@ -268,6 +283,11 @@ body.note-mode{padding:0}
 <body>
 
 <div class="app" id="app" data-view="list">
+  <nav class="rail" aria-label="접힌 메뉴">
+    <button class="icon-btn square" id="expandBtn" type="button" aria-label="메뉴 펼치기" title="메뉴 펼치기 (Ctrl+\)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg></button>
+    <button class="icon-btn square rail-new" id="railNew" type="button" aria-label="새 메모" title="새 메모"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="icon-btn square rail-float" id="railFloat" type="button" aria-pressed="false" aria-label="항상 위 창 열기" title="항상 위 창 열기/닫기"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor" stroke="none"/></svg></button>
+  </nav>
   <aside class="list-pane" aria-label="메모 목록">
     <header class="list-head">
       <div class="brand">
@@ -275,6 +295,7 @@ body.note-mode{padding:0}
         <button class="sync" id="sync" type="button" data-s="idle"><i class="dot" aria-hidden="true"></i><span id="syncText">불러오는 중</span></button>
       </div>
       <div class="head-actions">
+        <button class="icon-btn square" id="collapseBtn" type="button" aria-label="메뉴 접기" title="메뉴 접기 (Ctrl+\)"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg></button>
         <button class="icon-btn square" id="settingsBtn" type="button" aria-label="동기화·설치 설정" title="동기화·설치 설정">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
@@ -506,6 +527,7 @@ service cloud.firestore {
     edEmptyTitle: $('#edEmptyTitle'), edEmptyText: $('#edEmptyText'), del: $('#delBtn'), back: $('#backBtn'),
     newBtn: $('#newBtn'), edNew: $('#edNew'), fab: $('#fab'), cAll: $('#cAll'), cNoSp: $('#cNoSp'),
     toast: $('#toast'), toastText: $('#toastText'), toastAct: $('#toastAction'),
+    collapseBtn: $('#collapseBtn'), expandBtn: $('#expandBtn'), railNew: $('#railNew'), railFloat: $('#railFloat'),
     settingsBtn: $('#settingsBtn'), sheet: $('#sheet'), sheetClose: $('#sheetClose'),
     secAccount: $('#secAccount'), acctEmail: $('#acctEmail'), logoutBtn: $('#logoutBtn'),
     secAuth: $('#secAuth'), authForm: $('#authForm'), authEmail: $('#authEmail'), authPw: $('#authPw'),
@@ -732,6 +754,8 @@ service cloud.firestore {
     const on = !!S.sel && isFloated(S.sel);
     el.pop.setAttribute('aria-pressed', on ? 'true' : 'false');
     el.popLbl.textContent = on ? '내리기' : '띄우기';
+    el.railFloat.setAttribute('aria-pressed', pip ? 'true' : 'false');
+    el.railFloat.setAttribute('aria-label', pip ? '항상 위 창 닫기' : '항상 위 창 열기');
   }
 
   let toastTimer = 0;
@@ -1408,6 +1432,19 @@ service cloud.firestore {
   el.sync.addEventListener('click', () => { if (el.sync.dataset.s === 'error') { lastError = null; flushAll(); updateSync(); } });
   el.bannerAct.addEventListener('click', openSettings);
   el.settingsBtn.addEventListener('click', openSettings);
+  // 메뉴 접기/펼치기 (PC). 상태는 이 기기에 기억
+  const SIDEBAR_KEY = 'pocket-memo.sidebar.v1';
+  const isCollapsed = () => el.app.classList.contains('collapsed');
+  function setCollapsed(v) {
+    el.app.classList.toggle('collapsed', v);
+    ls.set(SIDEBAR_KEY, v ? '1' : '0');
+    (v ? el.expandBtn : el.collapseBtn).focus({ preventScroll: true });
+  }
+  if (!NOTE_ID && ls.get(SIDEBAR_KEY) === '1') el.app.classList.add('collapsed');
+  el.collapseBtn.addEventListener('click', () => setCollapsed(true));
+  el.expandBtn.addEventListener('click', () => setCollapsed(false));
+  el.railNew.addEventListener('click', newMemo);
+  el.railFloat.addEventListener('click', onFloatAll);
   el.sheetClose.addEventListener('click', closeSettings);
   el.sheet.addEventListener('click', (e) => { if (e.target === el.sheet) closeSettings(); });
 
@@ -1454,7 +1491,8 @@ service cloud.firestore {
     if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); flushPending(); return; }
     const a = document.activeElement;
     const typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
-    if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !el.sheet.open) { e.preventDefault(); el.q.focus(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === '\\' && !NOTE_ID && !mq.matches) { e.preventDefault(); setCollapsed(!isCollapsed()); return; }
+    if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !el.sheet.open) { e.preventDefault(); if (isCollapsed()) setCollapsed(false); el.q.focus(); return; }
     if (e.key === 'Escape' && !el.colorPop.hidden) { toggleColorPop(false); return; }
     if (e.key === 'Escape' && a === el.editor && mq.matches) el.back.click();
   });
