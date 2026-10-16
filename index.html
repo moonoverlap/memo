@@ -1,0 +1,1192 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>포켓 메모</title>
+<meta name="description" content="PC와 폰에서 같은 메모를 보고, PC에서는 고정한 메모를 항상 위 창으로 띄우는 메모장">
+<meta name="theme-color" content="#F4F6FB" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0F1C" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style id="tokens">
+/* Layout: 목록은 바탕 위, 편집기는 한 장의 종이. PC 2단 · 폰은 목록↔편집 전환. 고정 메모는 별도 '항상 위' 창 */
+:root{
+  --bg:#F4F6FB;
+  --surface:#FFFFFF;
+  --hover:#EAEEF7;
+  --line:#E1E6F0;
+  --ink:#121826;
+  --muted:#5B6680;
+  --faint:#8F99AF;
+  --accent:#295BFF;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#E6ECFF;
+  --accent-text:#1F49DB;
+  --ok:#17935F;
+  --warn:#C77D00;
+  --warn-soft:#FFF3D6;
+  --danger:#D43A40;
+  --toast-bg:#121826;
+  --toast-fg:#F4F6FB;
+  --toast-act:#9DB4FF;
+  --scrim:rgba(10,15,28,.42);
+  --shadow:0 1px 2px rgba(18,24,38,.05),0 10px 30px rgba(18,24,38,.07);
+  --shadow-fab:0 8px 20px rgba(41,91,255,.32);
+  --font:"Pretendard Variable","Pretendard",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0A0F1C; --surface:#111829; --hover:#1A2338; --line:#222D45;
+    --ink:#E6EBF6; --muted:#97A3BE; --faint:#66728E;
+    --accent:#4C74FF; --accent-ink:#FFFFFF; --accent-soft:#1B2752; --accent-text:#AFC2FF;
+    --ok:#3BC48C; --warn:#F0B33C; --warn-soft:#33270B; --danger:#FF6E72;
+    --toast-bg:#E6EBF6; --toast-fg:#0A0F1C; --toast-act:#2A52E0;
+    --scrim:rgba(0,0,0,.6);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+    --shadow-fab:0 8px 20px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+</style>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding-top:max(16px, env(safe-area-inset-top, 0px));
+  padding-bottom:max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+button{font:inherit;color:inherit}
+a{color:var(--accent-text)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg{flex:none}
+
+.app{
+  height:100%;
+  max-width:1240px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:minmax(260px, 340px) minmax(0, 1fr);
+  gap:20px;
+}
+
+/* ── 목록 ── */
+.list-pane{display:flex;flex-direction:column;min-height:0;min-width:0}
+.list-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:2px 2px 14px}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0}
+.brand h1{margin:0;font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1.25}
+.head-actions{display:flex;gap:6px;align-items:center}
+.sync{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;font-size:12px;color:var(--muted);cursor:default;text-align:left}
+.sync .dot{width:7px;height:7px;border-radius:50%;background:var(--faint);transition:background .2s}
+.sync[data-s="ok"] .dot{background:var(--ok)}
+.sync[data-s="busy"] .dot{background:var(--accent)}
+.sync[data-s="warn"] .dot{background:var(--warn)}
+.sync[data-s="error"] .dot{background:var(--danger)}
+.sync[data-s="error"]{color:var(--danger);cursor:pointer}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;padding:0 14px 0 12px;border-radius:10px;border:0;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:var(--hover);color:var(--ink);padding:0 14px}
+.btn.sm{height:32px;font-size:13px;padding:0 12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.icon-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.icon-btn:hover{background:var(--hover);color:var(--ink)}
+.icon-btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-text)}
+.icon-btn.danger:hover{color:var(--danger)}
+.icon-btn.square{width:38px;height:38px;padding:0;justify-content:center}
+
+.search{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--faint);transition:border-color .15s,box-shadow .15s}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search input{flex:1;min-width:0;border:0;outline:none;background:transparent;font:inherit;font-size:16px;color:var(--ink)}
+.search input::placeholder{color:var(--faint)}
+.search kbd{font-family:inherit;font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:5px;padding:0 6px;line-height:18px}
+
+.float-cta{
+  display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;
+  padding:11px 12px;border:0;border-radius:12px;cursor:pointer;text-align:left;
+  background:var(--accent-soft);color:var(--accent-text);font-size:13.5px;font-weight:600;
+}
+.float-cta:hover{filter:brightness(.98)}
+.float-cta span:first-of-type{flex:1;min-width:0}
+.float-cta .n{font-size:12px;font-weight:700;min-width:22px;height:22px;padding:0 7px;border-radius:11px;display:inline-grid;place-items:center;background:var(--surface);color:var(--accent-text);font-variant-numeric:tabular-nums}
+.float-cta[data-open="true"]{background:var(--accent);color:var(--accent-ink)}
+.float-cta[data-open="true"] .n{background:rgba(255,255,255,.22);color:var(--accent-ink)}
+
+.banner{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--warn-soft);color:var(--ink);font-size:13px;line-height:1.55}
+.banner span{flex:1;min-width:0}
+.banner button{flex:none;border:0;background:none;color:var(--accent-text);font-weight:700;font-size:13px;cursor:pointer;padding:4px 2px}
+
+.memo-list{list-style:none;margin:8px 0 0;padding:0 0 8px;overflow-y:auto;flex:1;min-height:0;overscroll-behavior:contain}
+.group{font-size:12px;font-weight:600;color:var(--faint);letter-spacing:.04em;padding:14px 12px 6px}
+.item{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;width:100%;padding:12px;border:0;border-radius:12px;background:transparent;text-align:left;cursor:pointer}
+.memo-list li:not(.group) + li:not(.group) .item::before{content:"";position:absolute;left:12px;right:12px;top:0;height:1px;background:var(--line)}
+.item:hover{background:var(--hover)}
+.item:hover::before,.item[aria-current="true"]::before{opacity:0}
+.memo-list li:not(.group):hover + li .item::before,
+.memo-list li:has(.item[aria-current="true"]) + li .item::before{opacity:0}
+.item[aria-current="true"]{background:var(--accent-soft)}
+.item .t{display:block;min-width:0;font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t svg{display:inline-block;vertical-align:-2px;margin-right:5px;color:var(--accent)}
+.item .time{font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums;align-self:center;white-space:nowrap}
+.item .p{grid-column:1 / -1;min-width:0;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item[aria-current="true"] .time{color:var(--accent-text)}
+.list-empty{padding:36px 14px;color:var(--muted);font-size:14px;line-height:1.6}
+.list-empty strong{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
+.list-foot{padding:10px 12px 0;font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums;border-top:1px solid var(--line)}
+
+/* ── 편집기 ── */
+.editor-pane{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.ed-body{display:flex;flex-direction:column;flex:1;min-height:0}
+.ed-head{display:flex;align-items:center;gap:6px;min-height:58px;padding:10px 12px 10px 22px;border-bottom:1px solid var(--line)}
+.ed-meta{flex:1;min-width:0;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.ed-actions{display:flex;gap:2px}
+.back{display:none;margin-left:-12px}
+#editor{flex:1;min-height:0;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--ink);font:inherit;font-size:16px;line-height:1.8;letter-spacing:-.005em;padding-block:26px 48px;padding-inline:max(26px, calc((100% - 720px) / 2))}
+#editor::placeholder{color:var(--faint)}
+.ed-foot{display:flex;gap:14px;justify-content:flex-end;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
+.ed-foot b{font-weight:600;color:var(--muted)}
+.ed-empty{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:14px;padding:40px max(28px, calc((100% - 520px) / 2))}
+.ed-empty p{margin:0;color:var(--muted);line-height:1.65;max-width:36ch}
+.ed-empty p strong{display:block;color:var(--ink);font-size:18px;letter-spacing:-.01em;margin-bottom:4px}
+
+/* ── 떠 있는 요소 ── */
+.fab{position:fixed;right:calc(max(16px, env(safe-area-inset-right, 0px)) + 4px);bottom:calc(22px + env(safe-area-inset-bottom, 0px));width:58px;height:58px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow-fab);display:none;place-items:center;cursor:pointer}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom, 0px));max-width:calc(100% - 32px);display:flex;align-items:center;gap:14px;padding:11px 14px 11px 16px;border-radius:12px;background:var(--toast-bg);color:var(--toast-fg);font-size:14px;box-shadow:var(--shadow);z-index:20}
+.toast button{border:0;background:none;color:var(--toast-act);font-weight:700;cursor:pointer;padding:2px 0;white-space:nowrap}
+
+/* ── 설정 ── */
+dialog.sheet{border:0;padding:0;border-radius:18px;background:var(--surface);color:var(--ink);width:min(540px, calc(100% - 32px));max-height:calc(100% - 48px);box-shadow:var(--shadow);overflow:hidden}
+dialog.sheet[open]{display:flex;flex-direction:column}
+dialog.sheet::backdrop{background:var(--scrim)}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 12px 12px 22px;border-bottom:1px solid var(--line)}
+.sheet-head h2{margin:0;font-size:17px;letter-spacing:-.01em}
+.sheet-body{padding:20px 22px 26px;display:flex;flex-direction:column;gap:26px;overflow-y:auto;min-height:0}
+.sec h3{margin:0 0 6px;font-size:15px;letter-spacing:-.01em}
+.sec p{margin:0 0 12px;color:var(--muted);font-size:13.5px;line-height:1.6}
+.sec p b{color:var(--ink)}
+.steps{margin:0 0 12px;padding-left:20px;font-size:13.5px;line-height:1.7;display:flex;flex-direction:column;gap:4px}
+.code-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:14px}
+.code{margin:0;width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:12px/1.55 var(--mono);white-space:pre;overflow-x:auto;color:var(--ink)}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.field label{font-size:12.5px;color:var(--muted);font-weight:500}
+.input{height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px;width:100%}
+.input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.input{height:130px;padding:10px 12px;font:12.5px/1.5 var(--mono);resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.msg{margin:0 0 10px;font-size:13px;color:var(--danger);min-height:0}
+.msg:empty{display:none}
+.linkbtn{border:0;background:none;padding:0;color:var(--muted);font-size:13px;text-decoration:underline;cursor:pointer}
+
+/* ── 폰 ── */
+@media (max-width: 759px){
+  body{padding-top:max(8px, env(safe-area-inset-top, 0px));padding-bottom:max(8px, env(safe-area-inset-bottom, 0px))}
+  .app{grid-template-columns:minmax(0, 1fr);gap:0}
+  .app[data-view="list"] .editor-pane{display:none}
+  .app[data-view="editor"] .list-pane{display:none}
+  .app[data-view="list"] .fab{display:grid}
+  #newBtn,.float-cta{display:none}
+  .back{display:inline-flex}
+  .ed-head{padding-left:14px}
+  .search kbd{display:none}
+  .memo-list{padding-bottom:96px}
+  .editor-pane{border-radius:16px}
+  .app[data-view="list"] ~ .toast{bottom:calc(96px + env(safe-area-inset-bottom, 0px))}
+}
+@media (max-width: 480px){
+  .ed-actions .lbl{display:none}
+  .ed-actions .icon-btn{padding:0 9px}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app" data-view="list">
+  <aside class="list-pane" aria-label="메모 목록">
+    <header class="list-head">
+      <div class="brand">
+        <h1>포켓 메모</h1>
+        <button class="sync" id="sync" type="button" data-s="idle"><i class="dot" aria-hidden="true"></i><span id="syncText">불러오는 중</span></button>
+      </div>
+      <div class="head-actions">
+        <button class="icon-btn square" id="settingsBtn" type="button" aria-label="동기화·설치 설정" title="동기화·설치 설정">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button class="btn primary" id="newBtn" type="button" title="새 메모">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          새 메모
+        </button>
+      </div>
+    </header>
+
+    <label class="search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+      <input id="q" type="search" placeholder="메모 검색" autocomplete="off" aria-label="메모 검색">
+      <kbd>/</kbd>
+    </label>
+
+    <button class="float-cta" id="floatBtn" type="button" data-open="false" title="고정한 메모를 다른 창 위에 항상 떠 있는 작은 창으로 띄웁니다">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor" stroke="none"/></svg>
+      <span id="floatText">고정 메모 항상 위에 띄우기</span>
+      <span class="n" id="floatCount">0</span>
+    </button>
+
+    <div class="banner" id="banner" role="status" hidden><span id="bannerText"></span><button id="bannerAct" type="button"></button></div>
+
+    <ul class="memo-list" id="list"></ul>
+    <div class="list-empty" id="listEmpty">
+      <strong id="emptyTitle">메모를 불러오는 중</strong>
+      <span id="emptyText">저장된 메모를 가져오고 있어요.</span>
+    </div>
+    <footer class="list-foot" id="count">메모 0개</footer>
+  </aside>
+
+  <main class="editor-pane" aria-label="메모 편집">
+    <div class="ed-body" id="edBody" hidden>
+      <header class="ed-head">
+        <button class="icon-btn back" id="backBtn" type="button" aria-label="목록으로">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <span class="ed-meta" id="edMeta"></span>
+        <div class="ed-actions">
+          <button class="icon-btn" id="pinBtn" type="button" aria-pressed="false" title="고정하면 목록 맨 위에 붙고, PC 항상 위 창에도 떠요">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+            <span class="lbl" id="pinLbl">고정</span>
+          </button>
+          <button class="icon-btn" id="copyBtn" type="button" aria-label="전체 복사">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span class="lbl">복사</span>
+          </button>
+          <button class="icon-btn danger" id="delBtn" type="button" aria-label="삭제">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span class="lbl">삭제</span>
+          </button>
+        </div>
+      </header>
+      <textarea id="editor" spellcheck="false" placeholder="첫 줄이 제목이 돼요.&#10;떠오른 걸 바로 적으세요. 쓰는 동안 자동 저장됩니다." aria-label="메모 내용"></textarea>
+      <footer class="ed-foot"><span>공백 포함 <b id="cAll">0</b>자</span><span>공백 제외 <b id="cNoSp">0</b>자</span></footer>
+    </div>
+
+    <div class="ed-empty" id="edEmpty">
+      <p><strong>메모를 골라 주세요</strong>왼쪽 목록에서 메모를 열거나, 새 메모를 바로 써보세요.</p>
+      <button class="btn primary" id="edNew" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        새 메모
+      </button>
+    </div>
+  </main>
+
+  <button class="fab" id="fab" type="button" aria-label="새 메모">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toastText"></span><button id="toastAction" type="button" hidden>되돌리기</button></div>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle">
+  <div class="sheet-head">
+    <h2 id="sheetTitle">동기화 · 설치</h2>
+    <button class="icon-btn square" id="sheetClose" type="button" aria-label="닫기">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="sheet-body">
+    <section class="sec" id="secAccount" hidden>
+      <h3>계정</h3>
+      <p><b id="acctEmail"></b> 계정으로 동기화 중이에요. PC와 폰에서 같은 계정으로 로그인하면 같은 메모가 보여요.</p>
+      <button class="btn ghost" id="logoutBtn" type="button">로그아웃</button>
+    </section>
+
+    <section class="sec" id="secAuth" hidden>
+      <h3>로그인</h3>
+      <p>처음 쓰는 기기라면 <b>계정 만들기</b>, 이미 만든 계정이 있으면 같은 이메일로 <b>로그인</b>하세요.</p>
+      <form id="authForm" novalidate>
+        <div class="field"><label for="authEmail">이메일</label><input class="input" id="authEmail" type="email" autocomplete="username" inputmode="email"></div>
+        <div class="field"><label for="authPw">비밀번호 (6자 이상)</label><input class="input" id="authPw" type="password" autocomplete="current-password"></div>
+        <p class="msg" id="authMsg" role="alert"></p>
+        <div class="row">
+          <button class="btn primary" id="loginBtn" type="submit">로그인</button>
+          <button class="btn ghost" id="signupBtn" type="button">계정 만들기</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="sec" id="secSetup" hidden>
+      <h3>동기화 연결 (처음 한 번)</h3>
+      <p>무료 Firebase 프로젝트에 메모를 저장해 PC와 폰을 맞춰요. 한 번만 하면 됩니다.</p>
+      <ol class="steps">
+        <li><a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebase 콘솔</a>에서 프로젝트를 만드세요. 쓰던 프로젝트를 써도 돼요.</li>
+        <li>Authentication → 로그인 방법에서 <b>이메일/비밀번호</b>를 사용 설정하세요.</li>
+        <li>Firestore Database를 만들고(위치는 asia-northeast3 서울 권장) 규칙 탭에 아래 규칙을 넣고 게시하세요. 쓰던 프로젝트라면 기존 규칙에 <b>match /users/…</b> 블록만 추가하세요.</li>
+        <li>프로젝트 설정 → 내 앱 → 웹 앱(&lt;/&gt;)을 추가하고, 나오는 firebaseConfig를 아래 칸에 통째로 붙여넣으세요.</li>
+      </ol>
+      <div class="code-wrap">
+<pre class="code" id="rulesCode">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/memos/{memoId} {
+      allow read, write: if request.auth != null
+                         &amp;&amp; request.auth.uid == uid;
+    }
+  }
+}</pre>
+        <button class="btn ghost sm" id="copyRules" type="button">규칙 복사</button>
+      </div>
+      <div class="field">
+        <label for="cfgInput">firebaseConfig 붙여넣기</label>
+        <textarea class="input" id="cfgInput" spellcheck="false" placeholder="const firebaseConfig = {&#10;  apiKey: &quot;…&quot;,&#10;  authDomain: &quot;…&quot;,&#10;  projectId: &quot;…&quot;,&#10;  appId: &quot;…&quot;&#10;};"></textarea>
+      </div>
+      <p class="msg" id="cfgMsg" role="alert"></p>
+      <button class="btn primary" id="cfgSave" type="button">연결하기</button>
+    </section>
+
+    <section class="sec">
+      <h3>앱으로 쓰기</h3>
+      <p id="installText"></p>
+      <button class="btn primary" id="installBtn" type="button" hidden>이 기기에 앱으로 설치</button>
+    </section>
+
+    <section class="sec">
+      <h3>PC 항상 위 창</h3>
+      <p>목록 위 <b>고정 메모 항상 위에 띄우기</b>를 누르면 고정한 메모만 담긴 작은 창이 다른 프로그램 위에 계속 떠 있어요. 창 크기와 위치는 끌어서 바꾸고, 창 안에서 바로 고쳐도 저장돼요. Chrome·Edge(PC)에서 동작하고, 메모앱 창을 닫으면 함께 닫혀요.</p>
+    </section>
+
+    <section class="sec" id="secReset" hidden>
+      <button class="linkbtn" id="cfgReset" type="button">Firebase 연결 다시 하기</button>
+    </section>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  'use strict';
+
+  /* Firebase 프로젝트: pocket-memo (pocket-memo-c13cc). 웹 앱용 공개 설정값이라 코드에 넣어도 됩니다.
+     메모 보호는 Firestore 보안 규칙(본인 계정만 읽기·쓰기)이 맡습니다. */
+  const EMBEDDED_FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyAdDMvFVdoLm2-VAP3dsdoR-_FXyIkrnpI',
+    authDomain: 'pocket-memo-c13cc.firebaseapp.com',
+    projectId: 'pocket-memo-c13cc',
+    storageBucket: 'pocket-memo-c13cc.firebasestorage.app',
+    messagingSenderId: '826301001058',
+    appId: '1:826301001058:web:0eb7fd9a3b811a7528903b',
+  };
+
+  const FB_VER = '10.12.2';
+  const LOCAL_KEY = 'pocket-memo.memos.v1';
+  const CFG_KEY = 'pocket-memo.firebase.v1';
+  const SEED_KEY = 'pocket-memo.seeded.v1';
+  const GUIDE_ID = 'guide';
+  const GUIDE_BODY = [
+    '포켓 메모 사용법 (예시 · 지워도 돼요)',
+    '첫 줄이 제목이 되고, 쓰는 동안 자동 저장돼요.',
+    'PC: 고정한 메모는 [고정 메모 항상 위에 띄우기]를 누르면 다른 창 위에 계속 떠 있어요. (Chrome·Edge)',
+    'PC·폰 동기화: 오른쪽 위 설정에서 한 번만 연결하면 돼요.',
+    '앱처럼 쓰기: 설정 → 앱으로 쓰기.',
+    'PC 단축키: / 검색, Ctrl+S 바로 저장.',
+  ].join('\n');
+
+  const $ = (s) => document.querySelector(s);
+  const el = {
+    app: $('#app'), list: $('#list'), listEmpty: $('#listEmpty'), emptyTitle: $('#emptyTitle'), emptyText: $('#emptyText'),
+    count: $('#count'), q: $('#q'), sync: $('#sync'), syncText: $('#syncText'),
+    banner: $('#banner'), bannerText: $('#bannerText'), bannerAct: $('#bannerAct'),
+    float: $('#floatBtn'), floatText: $('#floatText'), floatCount: $('#floatCount'),
+    edBody: $('#edBody'), edEmpty: $('#edEmpty'), editor: $('#editor'), meta: $('#edMeta'),
+    pin: $('#pinBtn'), pinLbl: $('#pinLbl'), copy: $('#copyBtn'), del: $('#delBtn'), back: $('#backBtn'),
+    newBtn: $('#newBtn'), edNew: $('#edNew'), fab: $('#fab'), cAll: $('#cAll'), cNoSp: $('#cNoSp'),
+    toast: $('#toast'), toastText: $('#toastText'), toastAct: $('#toastAction'),
+    settingsBtn: $('#settingsBtn'), sheet: $('#sheet'), sheetClose: $('#sheetClose'),
+    secAccount: $('#secAccount'), acctEmail: $('#acctEmail'), logoutBtn: $('#logoutBtn'),
+    secAuth: $('#secAuth'), authForm: $('#authForm'), authEmail: $('#authEmail'), authPw: $('#authPw'),
+    authMsg: $('#authMsg'), loginBtn: $('#loginBtn'), signupBtn: $('#signupBtn'),
+    secSetup: $('#secSetup'), copyRules: $('#copyRules'), rulesCode: $('#rulesCode'),
+    cfgInput: $('#cfgInput'), cfgMsg: $('#cfgMsg'), cfgSave: $('#cfgSave'),
+    installText: $('#installText'), installBtn: $('#installBtn'), secReset: $('#secReset'), cfgReset: $('#cfgReset'),
+  };
+
+  const PIN_SMALL = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>';
+  const mq = window.matchMedia('(max-width: 759px)');
+
+  const S = { memos: new Map(), sel: null, q: '', view: 'list', loaded: false, autoOpened: false, user: null, phase: 'boot', errorBanner: '' };
+  const dirty = new Set();     // 이 기기에서 바뀌었고 저장 확인 전
+  const deleting = new Set();  // 지운 메모 (늦게 온 목록이 되살리지 않도록)
+  const timers = new Map();    // 자동 저장 대기
+  let pending = 0, lastError = null, store = null, unsub = null, fb = null;
+  let online = navigator.onLine !== false;
+
+  const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  const pad = (n) => String(n).padStart(2, '0');
+  const DOW = '일월화수목금토';
+
+  /* ── 기기 저장소 ── */
+  const ls = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+    del(k) { try { localStorage.removeItem(k); } catch (e) { /* 무시 */ } },
+  };
+  function readLocal() { try { return JSON.parse(ls.get(LOCAL_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function writeLocal(data) { if (!ls.set(LOCAL_KEY, JSON.stringify(data))) throw { code: 'local_fail' }; }
+
+  function parseConfig(text) {
+    const out = {};
+    const re = /["']?([A-Za-z]+)["']?\s*:\s*["']([^"']*)["']/g;
+    let m;
+    while ((m = re.exec(text || ''))) out[m[1]] = m[2];
+    return (out.apiKey && out.projectId && out.appId) ? out : null;
+  }
+  function getConfig() {
+    if (EMBEDDED_FIREBASE_CONFIG) return EMBEDDED_FIREBASE_CONFIG;
+    try { const t = ls.get(CFG_KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; }
+  }
+
+  /* ── 시간·텍스트 ── */
+  function relTime(ts) {
+    const d = new Date(ts), now = new Date(), diff = (now - d) / 1000;
+    if (diff < 45) return '방금';
+    if (diff < 3600) return Math.max(1, Math.round(diff / 60)) + '분 전';
+    if (d.toDateString() === now.toDateString()) return pad(d.getHours()) + ':' + pad(d.getMinutes());
+    const y = new Date(now); y.setDate(now.getDate() - 1);
+    if (d.toDateString() === y.toDateString()) return '어제';
+    if (d.getFullYear() === now.getFullYear()) return (d.getMonth() + 1) + '월 ' + d.getDate() + '일';
+    return d.getFullYear() + '. ' + (d.getMonth() + 1) + '. ' + d.getDate() + '.';
+  }
+  function fullTime(ts) {
+    const d = new Date(ts);
+    const y = d.getFullYear() === new Date().getFullYear() ? '' : d.getFullYear() + '년 ';
+    return y + (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + DOW[d.getDay()] + ') ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ' 수정';
+  }
+  function splitMemo(body) {
+    const lines = (body || '').split('\n');
+    const i = lines.findIndex((l) => l.trim());
+    if (i < 0) return { title: '새 메모', preview: '' };
+    return {
+      title: lines[i].trim().slice(0, 200),
+      preview: lines.slice(i + 1).map((l) => l.trim()).filter(Boolean).join('  ').slice(0, 160),
+    };
+  }
+  const pinnedMemos = () => [...S.memos.values()].filter((m) => m.pinned);
+
+  /* ── 렌더 ── */
+  let rafId = 0;
+  function scheduleRender() {
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => { rafId = 0; renderList(); renderPip(); });
+  }
+  function renderAll() {
+    renderList(); renderEditor(); updateSync(); renderBanner(); renderPip();
+  }
+
+  function visibleMemos() {
+    const q = S.q.trim().toLowerCase();
+    const arr = [...S.memos.values()].filter((m) => !q || (m.body || '').toLowerCase().includes(q));
+    arr.sort((a, b) => (Number(!!b.pinned) - Number(!!a.pinned)) || ((b.updatedAt || 0) - (a.updatedAt || 0)));
+    return arr;
+  }
+
+  function renderList() {
+    const arr = visibleMemos();
+    const frag = document.createDocumentFragment();
+    const hasPinned = arr.some((m) => m.pinned);
+    let lastGroup = null;
+    for (const m of arr) {
+      const g = m.pinned ? 'pin' : 'all';
+      if (hasPinned && g !== lastGroup) {
+        const gl = document.createElement('li');
+        gl.className = 'group';
+        gl.textContent = g === 'pin' ? '고정됨' : '메모';
+        frag.append(gl);
+        lastGroup = g;
+      }
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'item'; b.dataset.id = m.id;
+      if (m.id === S.sel) b.setAttribute('aria-current', 'true');
+      const { title, preview } = splitMemo(m.body);
+      const t = document.createElement('span'); t.className = 't';
+      if (m.pinned) t.insertAdjacentHTML('afterbegin', PIN_SMALL);
+      t.append(document.createTextNode(title));
+      const time = document.createElement('span'); time.className = 'time';
+      time.textContent = relTime(m.updatedAt || m.createdAt || Date.now());
+      const p = document.createElement('span'); p.className = 'p';
+      p.textContent = preview || '내용 없음';
+      b.append(t, time, p);
+      li.append(b);
+      frag.append(li);
+    }
+    el.list.replaceChildren(frag);
+
+    const total = S.memos.size;
+    let title = '', text = '';
+    if (!S.loaded) { title = '메모를 불러오는 중'; text = '저장된 메모를 가져오고 있어요.'; }
+    else if (total === 0) { title = '아직 메모가 없어요'; text = '새 메모를 눌러 첫 메모를 남겨보세요. 쓰는 즉시 저장돼요.'; }
+    else if (arr.length === 0) { title = '검색 결과가 없어요'; text = '‘' + S.q.trim() + '’이 들어간 메모가 없어요.'; }
+    el.listEmpty.hidden = !title;
+    el.emptyTitle.textContent = title;
+    el.emptyText.textContent = text;
+    el.count.textContent = '메모 ' + total.toLocaleString('ko-KR') + '개' + (S.q.trim() ? ' · 검색 결과 ' + arr.length + '개' : '');
+    renderFloat();
+  }
+
+  function renderCounts(body) {
+    const s = body || '';
+    el.cAll.textContent = [...s.replace(/\n/g, '')].length.toLocaleString('ko-KR');
+    el.cNoSp.textContent = [...s.replace(/\s/g, '')].length.toLocaleString('ko-KR');
+  }
+  function renderMeta(m) {
+    el.meta.textContent = fullTime(m.updatedAt || m.createdAt || Date.now());
+    renderCounts(m.body);
+  }
+
+  function renderEditor(fromRemote) {
+    const m = S.sel ? S.memos.get(S.sel) : null;
+    el.edBody.hidden = !m;
+    el.edEmpty.hidden = !!m;
+    if (!m) { if (S.view === 'editor') setView('list'); return; }
+    if (el.editor.value !== m.body && !(fromRemote && dirty.has(m.id))) {
+      const focused = document.activeElement === el.editor;
+      const a = el.editor.selectionStart, z = el.editor.selectionEnd;
+      el.editor.value = m.body;
+      if (focused) {
+        const n = m.body.length;
+        el.editor.setSelectionRange(Math.min(a, n), Math.min(z, n));
+      }
+    }
+    el.pin.setAttribute('aria-pressed', m.pinned ? 'true' : 'false');
+    el.pinLbl.textContent = m.pinned ? '고정됨' : '고정';
+    renderMeta(m);
+  }
+
+  function setView(v) { S.view = v; el.app.dataset.view = v; }
+
+  function updateSync() {
+    let s, t;
+    if (!store) { s = 'idle'; t = '불러오는 중'; }
+    else if (store.kind === 'cloud' && !online) { s = 'warn'; t = dirty.size ? '오프라인 · 연결되면 저장' : '오프라인'; }
+    else if (pending > 0 || timers.size > 0) { s = 'busy'; t = '저장 중…'; }
+    else if (lastError && dirty.size) { s = 'error'; t = '저장 실패 · 눌러서 다시 시도'; }
+    else if (store.kind === 'local') { s = 'warn'; t = '이 기기에만 저장'; }
+    else { s = 'ok'; t = 'PC·폰 동기화됨'; }
+    el.sync.dataset.s = s;
+    el.syncText.textContent = t;
+  }
+
+  function renderBanner() {
+    let text = S.errorBanner, act = text ? '설정' : '';
+    if (!text) {
+      if (S.phase === 'local' && !getConfig()) { text = '지금은 이 기기에만 저장돼요. 한 번 연결해 두면 PC와 폰이 같은 메모를 봐요.'; act = '연결하기'; }
+      else if (S.phase === 'local') { text = '로그인하면 PC와 폰이 같은 메모를 봐요.'; act = '로그인'; }
+      else if (S.phase === 'fb-fail') { text = '동기화 서버에 연결하지 못했어요. 지금은 이 기기에만 저장돼요.'; act = '설정'; }
+    }
+    el.banner.hidden = !text;
+    el.bannerText.textContent = text;
+    el.bannerAct.textContent = act;
+  }
+
+  function renderFloat() {
+    el.floatCount.textContent = String(pinnedMemos().length);
+    el.float.dataset.open = pip ? 'true' : 'false';
+    el.floatText.textContent = pip ? '항상 위 창 닫기' : '고정 메모 항상 위에 띄우기';
+  }
+
+  let toastTimer = 0;
+  function hideToast() { el.toast.hidden = true; clearTimeout(toastTimer); }
+  function showToast(text, actLabel, act) {
+    if (!el.toast.hidden && el.toastText.textContent === text && !act) return;
+    el.toastText.textContent = text;
+    if (act) {
+      el.toastAct.hidden = false;
+      el.toastAct.textContent = actLabel;
+      el.toastAct.onclick = () => { hideToast(); act(); };
+    } else {
+      el.toastAct.hidden = true;
+      el.toastAct.onclick = null;
+    }
+    el.toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, act ? 6000 : 3200);
+  }
+
+  /* ── 저장소 ── */
+  function makeLocalStore() {
+    return {
+      kind: 'local',
+      save: async (id, d) => { const data = readLocal(); data[id] = d; writeLocal(data); },
+      remove: async (id) => { const data = readLocal(); delete data[id]; writeLocal(data); },
+      start(onDocs) {
+        const emit = () => onDocs(Object.entries(readLocal()).map(([id, data]) => ({ id, data })));
+        emit();
+        const onStorage = (e) => { if (e.key === LOCAL_KEY) emit(); };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
+      },
+    };
+  }
+  function makeCloudStore(fs, userId) {
+    const col = fs.collection('users').doc(userId).collection('memos');
+    return {
+      kind: 'cloud',
+      save: (id, d) => col.doc(id).set(d),
+      remove: (id) => col.doc(id).delete(),
+      start(onDocs, onError) {
+        return col.orderBy('updatedAt', 'desc').limit(1000).onSnapshot(
+          (snap) => onDocs(snap.docs.map((d) => ({ id: d.id, data: d.data() }))),
+          onError);
+      },
+    };
+  }
+
+  function useStore(next, phase) {
+    for (const id of [...timers.keys()]) flush(id);
+    if (unsub) { try { unsub(); } catch (e) { /* 무시 */ } unsub = null; }
+    store = next;
+    S.phase = phase;
+    S.memos = new Map();
+    dirty.clear(); deleting.clear();
+    S.loaded = false; S.sel = null; S.autoOpened = false; S.errorBanner = '';
+    setView('list');
+    renderAll();
+    unsub = next.start(applyRemote, onSnapError);
+  }
+
+  function onSnapError(e) {
+    const code = e && e.code;
+    S.errorBanner = code === 'permission-denied'
+      ? '메모를 읽을 권한이 없어요. 설정 화면의 Firestore 규칙을 게시했는지 확인해 주세요.'
+      : '메모를 불러오지 못했어요. 새로고침해 주세요.';
+    S.loaded = true;
+    renderAll();
+  }
+
+  function onWriteError(e) {
+    const code = (e && e.code) || '';
+    lastError = code || 'unknown';
+    if (code === 'permission-denied') showToast('저장 권한이 없어요. Firestore 규칙을 확인해 주세요.');
+    else if (code === 'resource-exhausted') showToast('Firebase 사용량 한도에 걸렸어요. 잠시 후 다시 시도해 주세요.');
+    else if (code === 'invalid-argument') showToast('메모가 너무 길어 저장하지 못했어요. 두 개로 나눠 주세요.');
+    else if (code === 'local_fail') showToast('이 기기 저장 공간에 쓰지 못했어요.');
+    else showToast('저장하지 못했어요. 연결되면 다시 시도해 주세요.');
+    updateSync();
+  }
+
+  function scheduleSave(id) {
+    clearTimeout(timers.get(id));
+    timers.set(id, setTimeout(() => flush(id), 700));
+    updateSync();
+  }
+
+  function flush(id) {
+    clearTimeout(timers.get(id)); timers.delete(id);
+    const m = S.memos.get(id);
+    if (!m || !store) { updateSync(); return; }
+    if (m.isNew && !m.body.trim()) { dirty.delete(id); updateSync(); return; }
+    const rev = m.rev || 0, target = store;
+    pending++;
+    m.isNew = false;
+    target.save(id, { body: m.body, pinned: !!m.pinned, createdAt: m.createdAt, updatedAt: m.updatedAt })
+      .then(() => { if ((m.rev || 0) === rev && store === target) dirty.delete(id); lastError = null; })
+      .catch(onWriteError)
+      .finally(() => { pending--; updateSync(); });
+    updateSync();
+  }
+  function flushAll() { for (const id of [...dirty]) flush(id); }
+  function flushPending() { for (const id of [...timers.keys()]) flush(id); }
+
+  function removeFromStore(id) {
+    deleting.add(id);
+    if (!store) return;
+    pending++;
+    store.remove(id).catch(onWriteError).finally(() => { pending--; updateSync(); });
+    updateSync();
+  }
+
+  /* ── 원격 반영 ── */
+  function applyRemote(docs) {
+    const next = new Map();
+    for (const d of docs) {
+      if (deleting.has(d.id)) continue;
+      const v = d.data || {};
+      const r = {
+        id: d.id,
+        body: typeof v.body === 'string' ? v.body : '',
+        pinned: !!v.pinned,
+        createdAt: Number(v.createdAt) || Date.now(),
+        updatedAt: Number(v.updatedAt) || Number(v.createdAt) || Date.now(),
+        isNew: false, rev: 0,
+      };
+      const local = S.memos.get(d.id);
+      if (local && (local.updatedAt || 0) > r.updatedAt) { next.set(d.id, local); continue; }
+      next.set(d.id, r);
+    }
+    for (const [id, m] of S.memos) {
+      if (deleting.has(id)) continue;
+      if (dirty.has(id) || m.isNew || timers.has(id)) next.set(id, m);
+    }
+    S.memos = next;
+    S.loaded = true;
+    S.errorBanner = '';
+    if (S.sel && !next.has(S.sel)) S.sel = null;
+    if (!S.autoOpened) {
+      S.autoOpened = true;
+      if (!mq.matches && !S.sel) {
+        const first = visibleMemos()[0];
+        if (first) { S.sel = first.id; el.editor.value = first.body; }
+      }
+    }
+    renderList(); renderEditor(true); renderBanner(); renderPip(); updateSync();
+  }
+
+  /* ── 메모 동작 ── */
+  function editMemo(id, value, source) {
+    const m = S.memos.get(id);
+    if (!m) return;
+    m.body = value;
+    m.updatedAt = Date.now();
+    m.rev = (m.rev || 0) + 1;
+    dirty.add(id);
+    scheduleSave(id);
+    if (S.sel === id) {
+      if (source !== 'main' && document.activeElement !== el.editor) el.editor.value = value;
+      renderMeta(m);
+    }
+    scheduleRender();
+  }
+
+  function leave(id) {
+    const m = id && S.memos.get(id);
+    if (!m) return;
+    if (!(m.body || '').trim()) {
+      S.memos.delete(id); dirty.delete(id);
+      clearTimeout(timers.get(id)); timers.delete(id);
+      if (!m.isNew) removeFromStore(id);
+      renderPip();
+    } else if (timers.has(id)) {
+      flush(id);
+    }
+  }
+
+  function enterEditorView() {
+    setView('editor');
+    if (mq.matches && !(history.state && history.state.v === 'editor')) {
+      try { history.pushState({ v: 'editor' }, ''); } catch (e) { /* 무시 */ }
+    }
+  }
+  function exitEditorHistory() {
+    if (history.state && history.state.v === 'editor') { try { history.back(); } catch (e) { /* 무시 */ } }
+  }
+
+  function open(id, focus) {
+    if (S.sel && S.sel !== id) leave(S.sel);
+    S.sel = id;
+    enterEditorView();
+    const m = S.memos.get(id);
+    el.editor.value = m ? m.body : '';
+    el.editor.scrollTop = 0;
+    renderList(); renderEditor();
+    if (focus) el.editor.focus();
+  }
+
+  function newMemo() {
+    const cur = S.sel && S.memos.get(S.sel);
+    if (cur && cur.isNew && !cur.body.trim()) { enterEditorView(); el.editor.focus(); return; }
+    if (S.q) { S.q = ''; el.q.value = ''; }
+    const now = Date.now(), id = uid();
+    S.memos.set(id, { id, body: '', pinned: false, createdAt: now, updatedAt: now, isNew: true, rev: 0 });
+    open(id, true);
+  }
+
+  function closeEditor() {
+    leave(S.sel);
+    S.sel = null;
+    setView('list');
+    renderList(); renderEditor();
+  }
+
+  function deleteCurrent() {
+    const id = S.sel, m = S.memos.get(id);
+    if (!m) return;
+    const saved = { ...m };
+    S.memos.delete(id); dirty.delete(id);
+    clearTimeout(timers.get(id)); timers.delete(id);
+    if (!m.isNew) removeFromStore(id);
+    S.sel = null;
+    setView('list');
+    exitEditorHistory();
+    renderList(); renderEditor(); renderPip(); updateSync();
+    if (!saved.body.trim()) return;
+    showToast('메모를 지웠어요', '되돌리기', () => {
+      deleting.delete(id);
+      const r = { ...saved, rev: (saved.rev || 0) + 1 };
+      S.memos.set(id, r);
+      dirty.add(id);
+      flush(id);
+      if (!mq.matches) { S.sel = id; el.editor.value = r.body; }
+      renderList(); renderEditor(); renderPip();
+    });
+  }
+
+  function setPinned(id, value) {
+    const m = S.memos.get(id);
+    if (!m || !!m.pinned === value) return;
+    m.pinned = value;
+    m.rev = (m.rev || 0) + 1;
+    dirty.add(id);
+    flush(id);
+    renderList(); renderEditor(); renderPip();
+    if (value && !mq.matches && !pip && pipOK) showToast('고정했어요. 항상 위 창에도 떠요.');
+  }
+
+  function copyText(text, okMsg, onFail) {
+    try {
+      const p = navigator.clipboard && navigator.clipboard.writeText(text);
+      if (p && p.then) p.then(() => showToast(okMsg), onFail); else onFail();
+    } catch (e) { onFail(); }
+  }
+
+  /* ── PC 항상 위 창 (Document Picture-in-Picture) ── */
+  const pipOK = 'documentPictureInPicture' in window;
+  let pip = null;
+  const PIP_CSS = `
+    *,*::before,*::after{box-sizing:border-box}
+    [hidden]{display:none !important}
+    html,body{margin:0;height:100%}
+    body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
+    .pip{display:flex;flex-direction:column;height:100%}
+    .pip-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--line);font-size:12.5px}
+    .pip-title{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--accent-text)}
+    .pip-count{color:var(--faint);font-variant-numeric:tabular-nums}
+    .pip-list{flex:1;min-height:0;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+    .pip-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 12px 6px}
+    .pip-card:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+    .pip-text{display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--ink);font:inherit;font-size:14px;line-height:1.65;padding:0;max-height:360px;overflow-y:auto}
+    .pip-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+    .pip-foot button{border:0;background:none;color:var(--muted);font:inherit;cursor:pointer;padding:3px 6px;border-radius:6px}
+    .pip-foot button:hover{background:var(--hover);color:var(--ink)}
+    .pip-empty{margin:0;padding:18px 14px;color:var(--muted);line-height:1.65}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  `;
+
+  async function toggleFloat() {
+    if (pip) { pip.win.close(); return; }
+    if (!pipOK) { showToast('항상 위 창은 PC의 Chrome·Edge에서 열 수 있어요.'); return; }
+    try {
+      const win = await window.documentPictureInPicture.requestWindow({ width: 360, height: 520 });
+      setupPip(win);
+    } catch (e) {
+      showToast('창을 열지 못했어요. 버튼을 다시 눌러 주세요.');
+    }
+  }
+
+  function setupPip(win) {
+    const d = win.document;
+    d.documentElement.lang = 'ko';
+    d.title = '고정 메모';
+    document.querySelectorAll('link[rel="stylesheet"]').forEach((l) => d.head.append(l.cloneNode(true)));
+    const st = d.createElement('style');
+    st.textContent = document.getElementById('tokens').textContent + PIP_CSS;
+    d.head.append(st);
+    d.body.innerHTML = '<div class="pip"><header class="pip-head"><span class="pip-title">' + PIN_SMALL + '고정 메모</span><span class="pip-count" id="pipCount"></span></header>'
+      + '<div class="pip-list" id="pipList"></div>'
+      + '<p class="pip-empty" id="pipEmpty" hidden>고정한 메모가 없어요. 메모를 열고 <b>고정</b>을 누르면 여기에 떠요.</p></div>';
+    pip = { win, d, list: d.getElementById('pipList'), count: d.getElementById('pipCount'), empty: d.getElementById('pipEmpty'), cards: new Map() };
+
+    pip.list.addEventListener('input', (e) => {
+      const ta = e.target;
+      if (!ta.dataset || !ta.dataset.id) return;
+      autoGrow(ta);
+      editMemo(ta.dataset.id, ta.value, 'pip');
+    });
+    pip.list.addEventListener('focusout', (e) => {
+      const ta = e.target;
+      if (ta.dataset && ta.dataset.id && timers.has(ta.dataset.id)) flush(ta.dataset.id);
+    });
+    pip.list.addEventListener('click', (e) => {
+      const b = e.target.closest && e.target.closest('[data-unpin]');
+      if (b) setPinned(b.dataset.unpin, false);
+    });
+    d.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key || '').toLowerCase() === 's') { e.preventDefault(); flushPending(); }
+    });
+    win.addEventListener('pagehide', () => { flushPending(); pip = null; renderFloat(); });
+    renderPip(); renderFloat();
+  }
+
+  function autoGrow(ta) {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 360) + 'px';
+  }
+
+  function makePipCard(id) {
+    const d = pip.d;
+    const root = d.createElement('section'); root.className = 'pip-card';
+    const ta = d.createElement('textarea');
+    ta.className = 'pip-text'; ta.dataset.id = id; ta.spellcheck = false; ta.rows = 2;
+    ta.setAttribute('aria-label', '고정 메모 내용');
+    const foot = d.createElement('footer'); foot.className = 'pip-foot';
+    const time = d.createElement('span');
+    const un = d.createElement('button'); un.type = 'button'; un.dataset.unpin = id; un.textContent = '고정 해제';
+    foot.append(time, un);
+    root.append(ta, foot);
+    const c = { root, ta, time };
+    pip.cards.set(id, c);
+    return c;
+  }
+
+  function renderPip() {
+    if (!pip) return;
+    const list = pinnedMemos().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    pip.count.textContent = list.length ? list.length + '개' : '';
+    pip.empty.hidden = list.length > 0;
+    const keep = new Set();
+    list.forEach((m, i) => {
+      keep.add(m.id);
+      const c = pip.cards.get(m.id) || makePipCard(m.id);
+      if (pip.list.children[i] !== c.root) pip.list.insertBefore(c.root, pip.list.children[i] || null);
+      if (pip.d.activeElement !== c.ta && c.ta.value !== m.body) { c.ta.value = m.body; autoGrow(c.ta); }
+      c.time.textContent = relTime(m.updatedAt || m.createdAt || Date.now());
+    });
+    for (const [id, c] of pip.cards) if (!keep.has(id)) { c.root.remove(); pip.cards.delete(id); }
+  }
+
+  /* ── 설정 · 로그인 · 설치 ── */
+  let installEvt = null;
+  const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+  function renderSettings() {
+    const cfg = getConfig();
+    el.secSetup.hidden = !!cfg;
+    el.secAuth.hidden = !cfg || !!S.user || S.phase === 'fb-fail';
+    el.secAccount.hidden = !S.user;
+    el.acctEmail.textContent = S.user ? (S.user.email || '') : '';
+    el.secReset.hidden = !cfg || !!EMBEDDED_FIREBASE_CONFIG;
+    if (isStandalone()) {
+      el.installText.textContent = '앱으로 실행 중이에요. 바탕화면이나 홈 화면 아이콘으로 바로 열 수 있어요.';
+      el.installBtn.hidden = true;
+    } else if (installEvt) {
+      el.installText.textContent = '설치하면 브라우저 없이 바탕화면·홈 화면 아이콘으로 바로 열려요.';
+      el.installBtn.hidden = false;
+    } else {
+      el.installText.textContent = 'PC Chrome·Edge는 주소창 오른쪽의 설치 아이콘을, 폰 브라우저는 메뉴의 ‘홈 화면에 추가’를 누르세요. 그다음부터는 아이콘으로 바로 열려요.';
+      el.installBtn.hidden = true;
+    }
+  }
+  function openSettings() {
+    renderSettings();
+    el.authMsg.textContent = ''; el.cfgMsg.textContent = '';
+    if (typeof el.sheet.showModal === 'function') el.sheet.showModal(); else el.sheet.setAttribute('open', '');
+  }
+  function closeSettings() { if (el.sheet.open) el.sheet.close(); }
+
+  const AUTH_MSG = {
+    'auth/invalid-email': '이메일 형식을 확인해 주세요.',
+    'auth/missing-email': '이메일을 입력해 주세요.',
+    'auth/missing-password': '비밀번호를 입력해 주세요.',
+    'auth/weak-password': '비밀번호는 6자 이상이어야 해요.',
+    'auth/email-already-in-use': '이미 만든 계정이에요. 로그인을 눌러 주세요.',
+    'auth/invalid-credential': '이메일이나 비밀번호가 맞지 않아요. 처음이라면 계정 만들기를 눌러 주세요.',
+    'auth/invalid-login-credentials': '이메일이나 비밀번호가 맞지 않아요. 처음이라면 계정 만들기를 눌러 주세요.',
+    'auth/wrong-password': '이메일이나 비밀번호가 맞지 않아요.',
+    'auth/user-not-found': '이 이메일로 만든 계정이 없어요. 계정 만들기를 눌러 주세요.',
+    'auth/operation-not-allowed': 'Firebase에서 이메일/비밀번호 로그인을 켜 주세요. (Authentication → 로그인 방법)',
+    'auth/configuration-not-found': 'Firebase에서 Authentication을 시작하고 이메일/비밀번호 로그인을 켜 주세요.',
+    'auth/network-request-failed': '인터넷 연결을 확인해 주세요.',
+    'auth/too-many-requests': '시도가 너무 많아요. 잠시 후 다시 해 주세요.',
+  };
+  async function doAuth(kind) {
+    if (!fb) { el.authMsg.textContent = '동기화 서버를 아직 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'; return; }
+    const email = el.authEmail.value.trim(), pw = el.authPw.value;
+    el.authMsg.textContent = '';
+    el.loginBtn.disabled = el.signupBtn.disabled = true;
+    try {
+      if (kind === 'signup') await fb.auth.createUserWithEmailAndPassword(email, pw);
+      else await fb.auth.signInWithEmailAndPassword(email, pw);
+      el.authPw.value = '';
+      closeSettings();
+      showToast(kind === 'signup' ? '계정을 만들었어요. 다른 기기에서도 같은 이메일로 로그인하세요.' : '로그인했어요. 메모를 맞추는 중이에요.');
+    } catch (e) {
+      const code = (e && e.code) || '';
+      el.authMsg.textContent = AUTH_MSG[code] || (code.indexOf('api-key') >= 0 ? 'firebaseConfig의 apiKey를 다시 확인해 주세요.' : '로그인하지 못했어요. (' + (code || '알 수 없는 오류') + ')');
+    } finally {
+      el.loginBtn.disabled = el.signupBtn.disabled = false;
+    }
+  }
+
+  /* ── 시작 ── */
+  function seedIfFirstRun() {
+    if (ls.get(SEED_KEY)) return;
+    ls.set(SEED_KEY, '1');
+    const data = readLocal();
+    if (Object.keys(data).length) return;
+    const now = Date.now();
+    data[GUIDE_ID] = { body: GUIDE_BODY, pinned: true, createdAt: now, updatedAt: now };
+    try { writeLocal(data); } catch (e) { /* 무시 */ }
+  }
+
+  function migrateLocal(cloud) {
+    const data = readLocal();
+    const ids = Object.keys(data).filter((id) => !(id === GUIDE_ID && data[id] && data[id].body === GUIDE_BODY));
+    const clear = () => { try { writeLocal({}); } catch (e) { /* 무시 */ } };
+    if (!ids.length) { if (Object.keys(data).length) clear(); return; }
+    Promise.all(ids.map((id) => cloud.save(id, data[id])))
+      .then(() => { clear(); showToast('이 기기에 있던 메모 ' + ids.length + '개를 계정으로 옮겼어요'); })
+      .catch(() => { /* 다음 로그인 때 다시 옮김 */ });
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.async = false;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('load failed: ' + src));
+      document.head.append(s);
+    });
+  }
+
+  async function bootFirebase(cfg) {
+    try {
+      for (const n of ['app', 'auth', 'firestore']) {
+        await loadScript('https://www.gstatic.com/firebasejs/' + FB_VER + '/firebase-' + n + '-compat.js');
+      }
+      const app = window.firebase.apps.length ? window.firebase.app() : window.firebase.initializeApp(cfg);
+      const fs = app.firestore();
+      try { await fs.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* 다른 탭이 먼저 켰거나 미지원 */ }
+      fb = { auth: app.auth(), fs };
+    } catch (e) {
+      useStore(makeLocalStore(), 'fb-fail');
+      renderSettings();
+      return;
+    }
+    S.phase = 'auth-wait';
+    fb.auth.onAuthStateChanged((u) => {
+      S.user = u || null;
+      if (u) {
+        const cloud = makeCloudStore(fb.fs, u.uid);
+        useStore(cloud, 'cloud');
+        migrateLocal(cloud);
+      } else {
+        useStore(makeLocalStore(), 'local');
+      }
+      renderSettings();
+    });
+  }
+
+  function init() {
+    seedIfFirstRun();
+    renderAll();
+    renderSettings();
+    const cfg = getConfig();
+    if (!cfg) { useStore(makeLocalStore(), 'local'); return; }
+    bootFirebase(cfg);
+  }
+
+  /* ── 이벤트 ── */
+  el.list.addEventListener('click', (e) => {
+    const b = e.target.closest('.item');
+    if (b) open(b.dataset.id, false);
+  });
+  el.editor.addEventListener('input', () => { if (S.sel) editMemo(S.sel, el.editor.value, 'main'); });
+  el.editor.addEventListener('blur', () => { if (S.sel && timers.has(S.sel)) flush(S.sel); });
+  el.q.addEventListener('input', () => { S.q = el.q.value; renderList(); });
+  el.q.addEventListener('keydown', (e) => { if (e.key === 'Escape') { el.q.value = ''; S.q = ''; renderList(); el.q.blur(); } });
+  el.newBtn.addEventListener('click', newMemo);
+  el.edNew.addEventListener('click', newMemo);
+  el.fab.addEventListener('click', newMemo);
+  el.back.addEventListener('click', () => { if (history.state && history.state.v === 'editor') exitEditorHistory(); else closeEditor(); });
+  window.addEventListener('popstate', () => { if (S.view === 'editor' && mq.matches) closeEditor(); });
+  el.pin.addEventListener('click', () => { const m = S.memos.get(S.sel); if (m) setPinned(m.id, !m.pinned); });
+  el.copy.addEventListener('click', () => {
+    const text = el.editor.value;
+    if (!text) return;
+    copyText(text, '메모 전체를 복사했어요', () => { el.editor.focus(); el.editor.select(); showToast('전체 선택했어요. 복사 키를 눌러 주세요.'); });
+  });
+  el.del.addEventListener('click', deleteCurrent);
+  el.float.addEventListener('click', toggleFloat);
+  el.sync.addEventListener('click', () => { if (el.sync.dataset.s === 'error') { lastError = null; flushAll(); updateSync(); } });
+  el.bannerAct.addEventListener('click', openSettings);
+  el.settingsBtn.addEventListener('click', openSettings);
+  el.sheetClose.addEventListener('click', closeSettings);
+  el.sheet.addEventListener('click', (e) => { if (e.target === el.sheet) closeSettings(); });
+
+  el.authForm.addEventListener('submit', (e) => { e.preventDefault(); doAuth('login'); });
+  el.signupBtn.addEventListener('click', () => doAuth('signup'));
+  el.logoutBtn.addEventListener('click', () => {
+    if (!fb) return;
+    flushPending();
+    fb.auth.signOut().then(() => { closeSettings(); showToast('로그아웃했어요. 이제 이 기기에만 저장돼요.'); });
+  });
+  el.copyRules.addEventListener('click', () => {
+    const text = el.rulesCode.textContent;
+    copyText(text, '규칙을 복사했어요', () => {
+      const r = document.createRange(); r.selectNodeContents(el.rulesCode);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      showToast('규칙을 선택했어요. 복사 키를 눌러 주세요.');
+    });
+  });
+  el.cfgSave.addEventListener('click', () => {
+    const cfg = parseConfig(el.cfgInput.value);
+    if (!cfg) { el.cfgMsg.textContent = 'apiKey, projectId, appId가 들어간 firebaseConfig 전체를 붙여넣어 주세요.'; return; }
+    if (!ls.set(CFG_KEY, JSON.stringify(cfg))) { el.cfgMsg.textContent = '이 브라우저에 설정을 저장하지 못했어요. 시크릿 창이면 일반 창에서 열어 주세요.'; return; }
+    flushPending();
+    location.reload();
+  });
+  el.cfgReset.addEventListener('click', () => {
+    flushPending();
+    ls.del(CFG_KEY);
+    const go = () => location.reload();
+    if (fb) fb.auth.signOut().then(go, go); else go();
+  });
+  el.installBtn.addEventListener('click', async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    try { await installEvt.userChoice; } catch (e) { /* 무시 */ }
+    installEvt = null;
+    renderSettings();
+  });
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; renderSettings(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; renderSettings(); showToast('설치했어요. 바탕화면·앱 목록에서 바로 열 수 있어요.'); });
+
+  document.addEventListener('keydown', (e) => {
+    const k = (e.key || '').toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); flushPending(); return; }
+    const a = document.activeElement;
+    const typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
+    if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !el.sheet.open) { e.preventDefault(); el.q.focus(); return; }
+    if (e.key === 'Escape' && a === el.editor && mq.matches) el.back.click();
+  });
+
+  window.addEventListener('online', () => { online = true; flushAll(); updateSync(); });
+  window.addEventListener('offline', () => { online = false; updateSync(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushPending(); });
+  window.addEventListener('pagehide', flushPending);
+
+  setInterval(() => {
+    renderList(); renderPip();
+    const m = S.sel && S.memos.get(S.sel);
+    if (m) el.meta.textContent = fullTime(m.updatedAt || m.createdAt);
+  }, 60000);
+
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* 무시 */ }); });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
