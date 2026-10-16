@@ -5,12 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>포켓 메모</title>
 <meta name="description" content="PC와 폰에서 같은 메모를 보고, PC에서는 고정한 메모를 항상 위 창으로 띄우는 메모장">
-<meta name="theme-color" content="#F4F6FB" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0A0F1C" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" id="themeColor" content="#F4F6FB">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script>
+  // 화면 밝기: 저장된 선택(기본 '밝게')을 첫 화면 전에 적용
+  (function () { var t = 'light'; try { t = localStorage.getItem('pocket-memo.theme') || 'light'; } catch (e) {} if (t !== 'auto') document.documentElement.setAttribute('data-theme', t); })();
+</script>
 <style id="tokens">
 /* Layout: 목록은 바탕 위, 편집기는 한 장의 종이. PC 2단 · 폰은 목록↔편집 전환. 고정 메모는 별도 '항상 위' 창 */
 :root{
@@ -40,7 +43,7 @@
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme="light"]){
     --bg:#0A0F1C; --surface:#111829; --hover:#1A2338; --line:#222D45;
     --ink:#E6EBF6; --muted:#97A3BE; --faint:#66728E;
     --accent:#4C74FF; --accent-ink:#FFFFFF; --accent-soft:#1B2752; --accent-text:#AFC2FF;
@@ -51,6 +54,17 @@
     --shadow-fab:0 8px 20px rgba(0,0,0,.5);
     color-scheme:dark;
   }
+}
+:root[data-theme="dark"]{
+    --bg:#0A0F1C; --surface:#111829; --hover:#1A2338; --line:#222D45;
+    --ink:#E6EBF6; --muted:#97A3BE; --faint:#66728E;
+    --accent:#4C74FF; --accent-ink:#FFFFFF; --accent-soft:#1B2752; --accent-text:#AFC2FF;
+    --ok:#3BC48C; --warn:#F0B33C; --warn-soft:#33270B; --danger:#FF6E72;
+    --toast-bg:#E6EBF6; --toast-fg:#0A0F1C; --toast-act:#2A52E0;
+    --scrim:rgba(0,0,0,.6);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+    --shadow-fab:0 8px 20px rgba(0,0,0,.5);
+    color-scheme:dark;
 }
 </style>
 <style>
@@ -150,15 +164,30 @@ svg{flex:none}
 
 /* ── 편집기 ── */
 .editor-pane{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
-.ed-body{display:flex;flex-direction:column;flex:1;min-height:0}
-.ed-head{display:flex;align-items:center;gap:6px;min-height:58px;padding:10px 12px 10px 22px;border-bottom:1px solid var(--line)}
-.ed-meta{flex:1;min-width:0;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-.ed-actions{display:flex;gap:2px}
+.ed-body{display:flex;flex-direction:column;flex:1;min-height:0;
+  --paper:#FFF4A8;--paper-bar:#FBE57A;--paper-ink:#2A2718;--paper-muted:rgba(42,39,24,.62);--paper-line:rgba(42,39,24,.12);--paper-hover:rgba(42,39,24,.08);
+  background:var(--paper);color:var(--paper-ink)}
+.ed-body .icon-btn{color:var(--paper-muted)}
+.ed-body .icon-btn:hover{background:var(--paper-hover);color:var(--paper-ink)}
+.ed-body .icon-btn[aria-pressed="true"]{background:var(--paper-hover);color:var(--paper-ink)}
+.ed-body .icon-btn.danger:hover{color:#B3261E}
+.ed-head{display:flex;align-items:center;gap:6px;min-height:58px;padding:10px 12px 10px 22px;background:var(--paper-bar);border-bottom:1px solid var(--paper-line)}
+.ed-meta{flex:1;min-width:0;font-size:12.5px;color:var(--paper-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.ed-actions{display:flex;gap:2px;position:relative}
 .back{display:none;margin-left:-12px}
-#editor{flex:1;min-height:0;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--ink);font:inherit;font-size:16px;line-height:1.8;letter-spacing:-.005em;padding-block:26px 48px;padding-inline:max(26px, calc((100% - 720px) / 2))}
-#editor::placeholder{color:var(--faint)}
-.ed-foot{display:flex;gap:14px;justify-content:flex-end;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
-.ed-foot b{font-weight:600;color:var(--muted)}
+#editor{flex:1;min-height:0;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--paper-ink);font:inherit;font-size:16px;line-height:1.8;letter-spacing:-.005em;padding-block:26px 48px;padding-inline:max(26px, calc((100% - 720px) / 2))}
+#editor::placeholder{color:var(--paper-muted)}
+.ed-foot{display:flex;gap:14px;justify-content:flex-end;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--paper-line);font-size:12px;color:var(--paper-muted);font-variant-numeric:tabular-nums}
+.ed-foot b{font-weight:600;color:var(--paper-ink)}
+.color-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:6;display:flex;gap:6px;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.swatch{width:26px;height:26px;border-radius:50%;border:1px solid rgba(0,0,0,.14);cursor:pointer;padding:0}
+.swatch[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:2px}
+.cdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:1px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.chip{display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:17px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-text)}
+.size-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:13px;color:var(--muted)}
+.size-row label{display:inline-flex;align-items:center;gap:6px}
+.input.sm{width:92px;height:36px;font-size:14px}
 .ed-empty{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:14px;padding:40px max(28px, calc((100% - 520px) / 2))}
 .ed-empty p{margin:0;color:var(--muted);line-height:1.65;max-width:36ch}
 .ed-empty p strong{display:block;color:var(--ink);font-size:18px;letter-spacing:-.01em;margin-bottom:4px}
@@ -210,10 +239,10 @@ textarea.input{height:130px;padding:10px 12px;font:12.5px/1.5 var(--mono);resize
   body:not(.note-mode) .pop-btn, body:not(.note-mode) .tear-btn{display:none}
 }
 /* ── 떼어낸 메모 창 (스티커 메모처럼 한 장씩) ── */
-body.note-mode{padding-block:6px}
+body.note-mode{padding:0}
 .note-mode .app{grid-template-columns:minmax(0, 1fr);gap:0}
 .note-mode .list-pane,.note-mode .fab,.note-mode .back,.note-mode #delBtn,.note-mode .pop-btn,.note-mode .tear-btn,.note-mode #edNew{display:none !important}
-.note-mode .editor-pane{display:flex !important;border-radius:12px}
+.note-mode .editor-pane{display:flex !important;border:0;border-radius:0;box-shadow:none}
 .note-mode .ed-head{min-height:42px;padding:4px 6px 4px 14px}
 .note-mode .ed-actions .lbl{display:none}
 .note-mode .ed-actions .icon-btn{padding:0 8px;height:32px}
@@ -294,6 +323,10 @@ body.note-mode{padding-block:6px}
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor" stroke="none"/></svg>
             <span class="lbl" id="popLbl">띄우기</span>
           </button>
+          <button class="icon-btn" id="colorBtn" type="button" aria-haspopup="true" aria-expanded="false" title="포스트잇 색 바꾸기">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2C19.7 16.4 22 14 22 11c0-5-4.5-9-10-9z"/></svg>
+            <span class="lbl">색</span>
+          </button>
           <button class="icon-btn" id="copyBtn" type="button" aria-label="전체 복사">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             <span class="lbl">복사</span>
@@ -302,6 +335,7 @@ body.note-mode{padding-block:6px}
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             <span class="lbl">삭제</span>
           </button>
+          <div class="color-pop" id="colorPop" role="group" aria-label="포스트잇 색" hidden></div>
         </div>
       </header>
       <textarea id="editor" spellcheck="false" placeholder="첫 줄이 제목이 돼요.&#10;떠오른 걸 바로 적으세요. 쓰는 동안 자동 저장됩니다." aria-label="메모 내용"></textarea>
@@ -392,6 +426,30 @@ service cloud.firestore {
       <p><b>띄우기</b>: 설치 없이 바로 다른 프로그램 위에 떠 있는 창 하나에 메모를 여러 장 나란히 넣어요. 메모마다 띄우기/내리기로 넣고 빼요. Chrome·Edge(PC) 기능이라 이 창은 한 번에 하나만 열리고, 메모앱 창을 닫으면 같이 닫혀요(최소화는 괜찮아요).</p>
     </section>
 
+    <section class="sec">
+      <h3>띄운 창 크기</h3>
+      <p>항상 위 창과 새 창이 처음 열릴 때의 크기예요. 열린 창 모서리를 끌어 바꾸면 그 크기를 기억하고, 새 창은 메모마다 마지막 크기를 따로 기억해요.</p>
+      <div class="row" role="group" aria-label="크기 고르기">
+        <button class="chip" type="button" data-size="300x360">작게</button>
+        <button class="chip" type="button" data-size="380x480">보통</button>
+        <button class="chip" type="button" data-size="560x640">크게</button>
+      </div>
+      <div class="size-row">
+        <label for="sizeW">가로 <input class="input sm" id="sizeW" type="number" inputmode="numeric" min="240" max="1600" step="10"> px</label>
+        <label for="sizeH">세로 <input class="input sm" id="sizeH" type="number" inputmode="numeric" min="200" max="1200" step="10"> px</label>
+      </div>
+    </section>
+
+    <section class="sec">
+      <h3>화면 밝기</h3>
+      <p>메모 종이는 고른 포스트잇 색 그대로 보여요.</p>
+      <div class="row" role="group" aria-label="화면 밝기">
+        <button class="chip" type="button" data-theme-opt="light">밝게</button>
+        <button class="chip" type="button" data-theme-opt="dark">어둡게</button>
+        <button class="chip" type="button" data-theme-opt="auto">기기 설정 따라</button>
+      </div>
+    </section>
+
     <section class="sec" id="secReset" hidden>
       <button class="linkbtn" id="cfgReset" type="button">Firebase 연결 다시 하기</button>
     </section>
@@ -428,6 +486,7 @@ service cloud.firestore {
     '첫 줄이 제목이 되고, 쓰는 동안 자동 저장돼요.',
     'PC: [새 창]은 스티커 메모처럼 한 장씩 떼어내고, [띄우기]는 항상 위 창에 여러 장을 나란히 띄워요.',
     'PC·폰 동기화: 오른쪽 위 설정에서 한 번만 연결하면 돼요.',
+    '색: 메모를 열고 [색]에서 포스트잇 색을 고르세요.',
     '앱처럼 쓰기: 설정 → 앱으로 쓰기.',
     'PC 단축키: / 검색, Ctrl+S 바로 저장.',
   ].join('\n');
@@ -439,7 +498,7 @@ service cloud.firestore {
     banner: $('#banner'), bannerText: $('#bannerText'), bannerAct: $('#bannerAct'),
     float: $('#floatBtn'), floatText: $('#floatText'), floatCount: $('#floatCount'),
     edBody: $('#edBody'), edEmpty: $('#edEmpty'), editor: $('#editor'), meta: $('#edMeta'),
-    pin: $('#pinBtn'), pinLbl: $('#pinLbl'), pop: $('#popBtn'), popLbl: $('#popLbl'), tear: $('#tearBtn'), copy: $('#copyBtn'),
+    pin: $('#pinBtn'), pinLbl: $('#pinLbl'), pop: $('#popBtn'), popLbl: $('#popLbl'), tear: $('#tearBtn'), colorBtn: $('#colorBtn'), colorPop: $('#colorPop'), sizeW: $('#sizeW'), sizeH: $('#sizeH'), copy: $('#copyBtn'),
     edEmptyTitle: $('#edEmptyTitle'), edEmptyText: $('#edEmptyText'), del: $('#delBtn'), back: $('#backBtn'),
     newBtn: $('#newBtn'), edNew: $('#edNew'), fab: $('#fab'), cAll: $('#cAll'), cNoSp: $('#cNoSp'),
     toast: $('#toast'), toastText: $('#toastText'), toastAct: $('#toastAction'),
@@ -515,6 +574,21 @@ service cloud.firestore {
   }
   const pinnedMemos = () => [...S.memos.values()].filter((m) => m.pinned);
 
+  /* ── 포스트잇 색 (메모마다 저장, 모든 기기에 동기화) ── */
+  const COLORS = {
+    yellow: { name: '노랑', bg: '#FFF4A8', bar: '#FBE57A' },
+    pink: { name: '분홍', bg: '#FFD6E5', bar: '#FFBBD2' },
+    green: { name: '연두', bg: '#D8F5C9', bar: '#BDEBA9' },
+    blue: { name: '하늘', bg: '#D2EAFF', bar: '#B3DAFF' },
+    purple: { name: '보라', bg: '#E8DCFF', bar: '#D5C2FF' },
+    orange: { name: '주황', bg: '#FFE0BA', bar: '#FFCB8E' },
+    gray: { name: '회색', bg: '#EEEEE9', bar: '#DCDCD5' },
+  };
+  const COLOR_KEYS = Object.keys(COLORS);
+  const LASTCOLOR_KEY = 'pocket-memo.lastcolor.v1';
+  const colorKey = (m) => (m && COLORS[m.color]) ? m.color : 'yellow';
+  const paintPaper = (node, m) => { const c = COLORS[colorKey(m)]; node.style.setProperty('--paper', c.bg); node.style.setProperty('--paper-bar', c.bar); };
+
   /* ── 렌더 ── */
   let rafId = 0;
   function scheduleRender() {
@@ -553,6 +627,7 @@ service cloud.firestore {
       const { title, preview } = splitMemo(m.body);
       const t = document.createElement('span'); t.className = 't';
       if (m.pinned) t.insertAdjacentHTML('afterbegin', PIN_SMALL);
+      const dot = document.createElement('i'); dot.className = 'cdot'; dot.style.background = COLORS[colorKey(m)].bg; t.prepend(dot);
       t.append(document.createTextNode(title));
       const time = document.createElement('span'); time.className = 'time';
       time.textContent = relTime(m.updatedAt || m.createdAt || Date.now());
@@ -607,6 +682,9 @@ service cloud.firestore {
         el.editor.setSelectionRange(Math.min(a, n), Math.min(z, n));
       }
     }
+    paintPaper(el.edBody, m);
+    if (NOTE_ID) document.body.style.background = COLORS[colorKey(m)].bg;
+    renderColorPop(m);
     el.pin.setAttribute('aria-pressed', m.pinned ? 'true' : 'false');
     el.pinLbl.textContent = m.pinned ? '고정됨' : '고정';
     renderMeta(m);
@@ -742,7 +820,7 @@ service cloud.firestore {
     const rev = m.rev || 0, target = store;
     pending++;
     m.isNew = false;
-    target.save(id, { body: m.body, pinned: !!m.pinned, createdAt: m.createdAt, updatedAt: m.updatedAt })
+    target.save(id, { body: m.body, pinned: !!m.pinned, color: colorKey(m), createdAt: m.createdAt, updatedAt: m.updatedAt })
       .then(() => { if ((m.rev || 0) === rev && store === target) dirty.delete(id); lastError = null; })
       .catch(onWriteError)
       .finally(() => { pending--; updateSync(); });
@@ -769,6 +847,7 @@ service cloud.firestore {
         id: d.id,
         body: typeof v.body === 'string' ? v.body : '',
         pinned: !!v.pinned,
+        color: COLORS[v.color] ? v.color : 'yellow',
         createdAt: Number(v.createdAt) || Date.now(),
         updatedAt: Number(v.updatedAt) || Number(v.createdAt) || Date.now(),
         isNew: false, rev: 0,
@@ -850,7 +929,7 @@ service cloud.firestore {
     if (cur && cur.isNew && !cur.body.trim()) { enterEditorView(); el.editor.focus(); return; }
     if (S.q) { S.q = ''; el.q.value = ''; }
     const now = Date.now(), id = uid();
-    S.memos.set(id, { id, body: '', pinned: false, createdAt: now, updatedAt: now, isNew: true, rev: 0 });
+    S.memos.set(id, { id, body: '', pinned: false, color: COLORS[ls.get(LASTCOLOR_KEY)] ? ls.get(LASTCOLOR_KEY) : 'yellow', createdAt: now, updatedAt: now, isNew: true, rev: 0 });
     open(id, true);
   }
 
@@ -884,6 +963,29 @@ service cloud.firestore {
     });
   }
 
+  function setColor(id, key) {
+    const m = S.memos.get(id);
+    if (!m || !COLORS[key]) return;
+    ls.set(LASTCOLOR_KEY, key);
+    if (colorKey(m) === key) return;
+    m.color = key;
+    m.rev = (m.rev || 0) + 1;
+    dirty.add(id);
+    flush(id);
+    renderList(); renderEditor(); renderPip();
+  }
+  function renderColorPop(m) {
+    if (el.colorPop.hidden) return;
+    const cur = colorKey(m);
+    el.colorPop.querySelectorAll('.swatch').forEach((b) => b.setAttribute('aria-pressed', b.dataset.color === cur ? 'true' : 'false'));
+  }
+  function toggleColorPop(show) {
+    const openIt = show === undefined ? el.colorPop.hidden : show;
+    el.colorPop.hidden = !openIt;
+    el.colorBtn.setAttribute('aria-expanded', openIt ? 'true' : 'false');
+    if (openIt) renderColorPop(S.memos.get(S.sel));
+  }
+
   function setPinned(id, value) {
     const m = S.memos.get(id);
     if (!m || !!m.pinned === value) return;
@@ -908,6 +1010,10 @@ service cloud.firestore {
   const pipOK = 'documentPictureInPicture' in window;
   const FLOAT_KEY = 'pocket-memo.floated.v1';
   let pip = null;
+  const SIZE_KEY = 'pocket-memo.floatsize.v1';
+  const clampSize = (w, h) => ({ w: Math.round(Math.min(1600, Math.max(240, w || 380))), h: Math.round(Math.min(1200, Math.max(200, h || 480))) });
+  let floatSize = (() => { try { const v = JSON.parse(ls.get(SIZE_KEY) || 'null'); if (v && v.w > 0 && v.h > 0) return clampSize(v.w, v.h); } catch (e) { /* 기본값 */ } return { w: 380, h: 480 }; })();
+  function setFloatSize(w, h) { floatSize = clampSize(w, h); ls.set(SIZE_KEY, JSON.stringify(floatSize)); renderSizeControls(); }
   let floated = (() => { try { const v = JSON.parse(ls.get(FLOAT_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } })();
   const saveFloated = () => ls.set(FLOAT_KEY, JSON.stringify(floated));
   const isFloated = (id) => floated.includes(id);
@@ -923,12 +1029,13 @@ service cloud.firestore {
     .pip-title svg{display:inline-block;vertical-align:-2px;margin-right:6px}
     .pip-count{flex:none;color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap}
     .pip-list{flex:1;min-height:0;overflow-y:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));gap:10px;align-content:start}
-    .pip-card{display:flex;flex-direction:column;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px 6px}
+    .pip-card{display:flex;flex-direction:column;min-width:0;background:var(--paper, #FFF4A8);border:1px solid var(--paper-bar, #FBE57A);border-radius:12px;padding:10px 12px 6px;color:#2A2718;box-shadow:0 1px 2px rgba(0,0,0,.06)}
     .pip-card:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-    .pip-text{display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--ink);font:inherit;font-size:14px;line-height:1.65;padding:0;max-height:360px;overflow-y:auto}
-    .pip-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
-    .pip-foot button{border:0;background:none;color:var(--muted);font:inherit;cursor:pointer;padding:3px 6px;border-radius:6px}
-    .pip-foot button:hover{background:var(--hover);color:var(--ink)}
+    .pip-text{display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:#2A2718;font:inherit;font-size:14px;line-height:1.65;padding:0;max-height:360px;overflow-y:auto}
+    .pip-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;font-size:11.5px;color:rgba(42,39,24,.6);font-variant-numeric:tabular-nums}
+    .pip-foot .acts{display:flex;gap:2px}
+    .pip-foot button{border:0;background:none;color:rgba(42,39,24,.72);font:inherit;cursor:pointer;padding:3px 6px;border-radius:6px}
+    .pip-foot button:hover{background:rgba(42,39,24,.08);color:#2A2718}
     .pip-empty{margin:0;padding:18px 14px;color:var(--muted);line-height:1.65}
     :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   `;
@@ -939,9 +1046,8 @@ service cloud.firestore {
   async function openFloatWindow() {
     if (pip) return;
     if (!pipOK) { showToast('항상 위 창은 PC의 Chrome·Edge에서 열 수 있어요.'); return; }
-    const n = Math.max(1, floatedMemos().length);
     try {
-      const win = await window.documentPictureInPicture.requestWindow({ width: Math.min(250 * Math.min(n, 3) + 20, 800), height: 460 });
+      const win = await window.documentPictureInPicture.requestWindow({ width: floatSize.w, height: floatSize.h });
       setupPip(win);
     } catch (e) {
       showToast('창을 열지 못했어요. 버튼을 다시 눌러 주세요.');
@@ -979,6 +1085,8 @@ service cloud.firestore {
   function setupPip(win) {
     const d = win.document;
     d.documentElement.lang = 'ko';
+    const th = document.documentElement.getAttribute('data-theme');
+    if (th) d.documentElement.setAttribute('data-theme', th);
     d.title = '항상 위 메모';
     document.querySelectorAll('link[rel="stylesheet"]').forEach((l) => d.head.append(l.cloneNode(true)));
     const st = d.createElement('style');
@@ -1001,13 +1109,22 @@ service cloud.firestore {
       if (ta.dataset && ta.dataset.id && timers.has(ta.dataset.id)) flush(ta.dataset.id);
     });
     d.body.addEventListener('click', (e) => {
-      const b = e.target.closest && e.target.closest('[data-unfloat]');
-      if (b) toggleFloatMemo(b.dataset.unfloat);
+      if (!e.target.closest) return;
+      const b = e.target.closest('[data-unfloat]');
+      if (b) { toggleFloatMemo(b.dataset.unfloat); return; }
+      const cy = e.target.closest('[data-cycle]');
+      if (cy) {
+        const m = S.memos.get(cy.dataset.cycle);
+        if (m) setColor(m.id, COLOR_KEYS[(COLOR_KEYS.indexOf(colorKey(m)) + 1) % COLOR_KEYS.length]);
+      }
     });
     d.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && (e.key || '').toLowerCase() === 's') { e.preventDefault(); flushPending(); }
     });
     win.addEventListener('pagehide', () => { flushPending(); pip = null; renderFloat(); });
+    // 창 모서리를 끌어 바꾼 크기를 다음에도 쓰도록 기억
+    let rt = 0;
+    win.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => setFloatSize(win.innerWidth, win.innerHeight), 400); });
     renderPip(); renderFloat();
   }
 
@@ -1027,8 +1144,11 @@ service cloud.firestore {
     ta.setAttribute('aria-label', '메모 내용');
     const foot = d.createElement('footer'); foot.className = 'pip-foot';
     const time = d.createElement('span');
+    const acts = d.createElement('span'); acts.className = 'acts';
+    const col = d.createElement('button'); col.type = 'button'; col.dataset.cycle = id; col.textContent = '색'; col.title = '포스트잇 색 바꾸기';
     const down = d.createElement('button'); down.type = 'button'; down.dataset.unfloat = id; down.textContent = '내리기';
-    foot.append(time, down);
+    acts.append(col, down);
+    foot.append(time, acts);
     root.append(ta, foot);
     const c = { root, ta, time };
     pip.cards.set(id, c);
@@ -1045,6 +1165,7 @@ service cloud.firestore {
       keep.add(m.id);
       const c = pip.cards.get(m.id) || makePipCard(m.id);
       if (pip.list.children[i] !== c.root) pip.list.insertBefore(c.root, pip.list.children[i] || null);
+      paintPaper(c.root, m);
       if (!pipTyping(c.ta) && c.ta.value !== m.body) { c.ta.value = m.body; autoGrow(c.ta); }
       c.time.textContent = relTime(m.updatedAt || m.createdAt || Date.now());
     });
@@ -1059,7 +1180,7 @@ service cloud.firestore {
     if (timers.has(id) || dirty.has(id)) flush(id);
     let pos = {};
     try { pos = (JSON.parse(ls.get(NOTEPOS_KEY) || '{}') || {})[id] || {}; } catch (e) { pos = {}; }
-    const feat = ['popup', 'width=' + (pos.w || 340), 'height=' + (pos.h || 420)];
+    const feat = ['popup', 'width=' + (pos.w || floatSize.w), 'height=' + (pos.h || floatSize.h)];
     if (Number.isFinite(pos.x) && Number.isFinite(pos.y)) feat.push('left=' + pos.x, 'top=' + pos.y);
     const url = location.pathname + '?note=' + encodeURIComponent(id);
     const w = window.open(url, 'pocket-note-' + id, feat.join(','));
@@ -1067,11 +1188,32 @@ service cloud.firestore {
   }
 
   /* ── 설정 · 로그인 · 설치 ── */
+  const THEME_KEY = 'pocket-memo.theme';
+  const currentTheme = () => ls.get(THEME_KEY) || 'light';
+  function applyTheme(t) {
+    const roots = [document.documentElement];
+    if (pip) roots.push(pip.d.documentElement);
+    roots.forEach((r) => { if (t === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t); });
+    const dark = t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const meta = document.getElementById('themeColor');
+    if (meta) meta.setAttribute('content', dark ? '#0A0F1C' : '#F4F6FB');
+  }
+  function renderSizeControls() {
+    if (document.activeElement !== el.sizeW) el.sizeW.value = floatSize.w;
+    if (document.activeElement !== el.sizeH) el.sizeH.value = floatSize.h;
+    document.querySelectorAll('[data-size]').forEach((b) => {
+      const [w, h] = b.dataset.size.split('x').map(Number);
+      b.setAttribute('aria-pressed', w === floatSize.w && h === floatSize.h ? 'true' : 'false');
+    });
+  }
   let installEvt = null;
   const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
   function renderSettings() {
     const cfg = getConfig();
+    renderSizeControls();
+    const th = currentTheme();
+    document.querySelectorAll('[data-theme-opt]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.themeOpt === th ? 'true' : 'false'));
     el.secSetup.hidden = !!cfg;
     el.secAuth.hidden = !cfg || !!S.user || S.phase === 'fb-fail';
     el.secAccount.hidden = !S.user;
@@ -1221,6 +1363,36 @@ service cloud.firestore {
   el.float.addEventListener('click', onFloatAll);
   el.pop.addEventListener('click', () => toggleFloatMemo(S.sel));
   el.tear.addEventListener('click', () => openNoteWindow(S.sel));
+  COLOR_KEYS.forEach((k) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'swatch'; b.dataset.color = k;
+    b.style.background = COLORS[k].bg; b.title = COLORS[k].name; b.setAttribute('aria-label', COLORS[k].name);
+    el.colorPop.append(b);
+  });
+  el.colorBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleColorPop(); });
+  el.colorPop.addEventListener('click', (e) => {
+    const b = e.target.closest('.swatch');
+    if (b && S.sel) { setColor(S.sel, b.dataset.color); toggleColorPop(false); }
+  });
+  document.addEventListener('click', (e) => { if (!el.colorPop.hidden && !el.colorPop.contains(e.target)) toggleColorPop(false); });
+  document.querySelectorAll('[data-size]').forEach((b) => b.addEventListener('click', () => {
+    const [w, h] = b.dataset.size.split('x').map(Number);
+    setFloatSize(w, h);
+  }));
+  const onSizeInput = () => setFloatSize(Number(el.sizeW.value), Number(el.sizeH.value));
+  el.sizeW.addEventListener('change', onSizeInput);
+  el.sizeH.addEventListener('change', onSizeInput);
+  document.querySelectorAll('[data-theme-opt]').forEach((b) => b.addEventListener('click', () => {
+    ls.set(THEME_KEY, b.dataset.themeOpt);
+    applyTheme(b.dataset.themeOpt);
+    renderSettings();
+  }));
+  // 다른 창(떼어낸 메모)에서 바꾼 밝기·크기도 따라가기
+  window.addEventListener('storage', (e) => {
+    if (e.key === THEME_KEY) applyTheme(currentTheme());
+    if (e.key === SIZE_KEY) { try { floatSize = clampSize(...Object.values(JSON.parse(e.newValue || '{}'))); } catch (err) { /* 무시 */ } }
+  });
+  applyTheme(currentTheme());
   if (NOTE_ID) {
     // 다음에 같은 메모를 떼어낼 때 같은 자리·크기로 열리도록 기억
     const savePos = () => {
@@ -1282,6 +1454,7 @@ service cloud.firestore {
     const a = document.activeElement;
     const typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
     if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !el.sheet.open) { e.preventDefault(); el.q.focus(); return; }
+    if (e.key === 'Escape' && !el.colorPop.hidden) { toggleColorPop(false); return; }
     if (e.key === 'Escape' && a === el.editor && mq.matches) el.back.click();
   });
 
