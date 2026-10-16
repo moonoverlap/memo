@@ -206,6 +206,9 @@ textarea.input{height:130px;padding:10px 12px;font:12.5px/1.5 var(--mono);resize
   .editor-pane{border-radius:16px}
   .app[data-view="list"] ~ .toast{bottom:calc(96px + env(safe-area-inset-bottom, 0px))}
 }
+@media (max-width: 759px){
+  .pop-btn{display:none}
+}
 @media (max-width: 480px){
   .ed-actions .lbl{display:none}
   .ed-actions .icon-btn{padding:0 9px}
@@ -268,6 +271,10 @@ textarea.input{height:130px;padding:10px 12px;font:12.5px/1.5 var(--mono);resize
           <button class="icon-btn" id="pinBtn" type="button" aria-pressed="false" title="고정하면 목록 맨 위에 붙고, PC 항상 위 창에도 떠요">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
             <span class="lbl" id="pinLbl">고정</span>
+          </button>
+          <button class="icon-btn pop-btn" id="popBtn" type="button" aria-pressed="false" title="이 메모만 다른 창 위에 항상 떠 있게 띄웁니다 (Chrome·Edge)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor" stroke="none"/></svg>
+            <span class="lbl" id="popLbl">띄우기</span>
           </button>
           <button class="icon-btn" id="copyBtn" type="button" aria-label="전체 복사">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="13" height="13" x="9" y="9" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -363,7 +370,8 @@ service cloud.firestore {
 
     <section class="sec">
       <h3>PC 항상 위 창</h3>
-      <p>목록 위 <b>고정 메모 항상 위에 띄우기</b>를 누르면 고정한 메모만 담긴 작은 창이 다른 프로그램 위에 계속 떠 있어요. 창 크기와 위치는 끌어서 바꾸고, 창 안에서 바로 고쳐도 저장돼요. Chrome·Edge(PC)에서 동작하고, 메모앱 창을 닫으면 함께 닫혀요.</p>
+      <p>메모를 열고 <b>띄우기</b>를 누르면 그 메모만 작은 창으로 떼어져 다른 프로그램 위에 계속 떠 있어요. 목록 위 <b>고정 메모 항상 위에 띄우기</b>는 고정한 메모를 한 창에 모아서 띄워요. 창 크기와 위치는 끌어서 바꾸고, 창 안에서 바로 고쳐도 저장돼요.</p>
+      <p>Chrome·Edge(PC)는 이 창을 한 번에 하나만 열 수 있어서, 다른 메모를 띄우면 떠 있는 창의 내용이 바뀌어요. 메모앱 창을 닫으면 함께 닫히니, 앱 창은 최소화해 두세요.</p>
     </section>
 
     <section class="sec" id="secReset" hidden>
@@ -395,7 +403,7 @@ service cloud.firestore {
   const GUIDE_BODY = [
     '포켓 메모 사용법 (예시 · 지워도 돼요)',
     '첫 줄이 제목이 되고, 쓰는 동안 자동 저장돼요.',
-    'PC: 고정한 메모는 [고정 메모 항상 위에 띄우기]를 누르면 다른 창 위에 계속 떠 있어요. (Chrome·Edge)',
+    'PC: 메모를 열고 [띄우기]를 누르면 그 메모만 다른 창 위에 계속 떠 있어요. (Chrome·Edge)',
     'PC·폰 동기화: 오른쪽 위 설정에서 한 번만 연결하면 돼요.',
     '앱처럼 쓰기: 설정 → 앱으로 쓰기.',
     'PC 단축키: / 검색, Ctrl+S 바로 저장.',
@@ -408,7 +416,7 @@ service cloud.firestore {
     banner: $('#banner'), bannerText: $('#bannerText'), bannerAct: $('#bannerAct'),
     float: $('#floatBtn'), floatText: $('#floatText'), floatCount: $('#floatCount'),
     edBody: $('#edBody'), edEmpty: $('#edEmpty'), editor: $('#editor'), meta: $('#edMeta'),
-    pin: $('#pinBtn'), pinLbl: $('#pinLbl'), copy: $('#copyBtn'), del: $('#delBtn'), back: $('#backBtn'),
+    pin: $('#pinBtn'), pinLbl: $('#pinLbl'), pop: $('#popBtn'), popLbl: $('#popLbl'), copy: $('#copyBtn'), del: $('#delBtn'), back: $('#backBtn'),
     newBtn: $('#newBtn'), edNew: $('#edNew'), fab: $('#fab'), cAll: $('#cAll'), cNoSp: $('#cNoSp'),
     toast: $('#toast'), toastText: $('#toastText'), toastAct: $('#toastAction'),
     settingsBtn: $('#settingsBtn'), sheet: $('#sheet'), sheetClose: $('#sheetClose'),
@@ -601,8 +609,12 @@ service cloud.firestore {
 
   function renderFloat() {
     el.floatCount.textContent = String(pinnedMemos().length);
-    el.float.dataset.open = pip ? 'true' : 'false';
-    el.floatText.textContent = pip ? '항상 위 창 닫기' : '고정 메모 항상 위에 띄우기';
+    const allOpen = !!pip && pip.mode === 'pinned';
+    el.float.dataset.open = allOpen ? 'true' : 'false';
+    el.floatText.textContent = allOpen ? '항상 위 창 닫기' : (pip ? '고정 메모 모두 띄우기' : '고정 메모 항상 위에 띄우기');
+    const soloOn = !!pip && pip.mode === 'single' && !!S.sel && pip.singleId === S.sel;
+    el.pop.setAttribute('aria-pressed', soloOn ? 'true' : 'false');
+    el.popLbl.textContent = soloOn ? '창 닫기' : '띄우기';
   }
 
   let toastTimer = 0;
@@ -859,7 +871,9 @@ service cloud.firestore {
     } catch (e) { onFail(); }
   }
 
-  /* ── PC 항상 위 창 (Document Picture-in-Picture) ── */
+  /* ── PC 항상 위 창 (Document Picture-in-Picture) ──
+     mode 'pinned': 고정 메모를 한 창에 모아서 / mode 'single': 메모 하나만 포스트잇처럼.
+     Chrome은 이 창을 한 번에 하나만 열 수 있어서, 다른 메모를 띄우면 같은 창의 내용이 바뀐다. */
   const pipOK = 'documentPictureInPicture' in window;
   let pip = null;
   const PIP_CSS = `
@@ -868,57 +882,95 @@ service cloud.firestore {
     html,body{margin:0;height:100%}
     body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
     .pip{display:flex;flex-direction:column;height:100%}
-    .pip-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--line);font-size:12.5px}
-    .pip-title{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--accent-text)}
-    .pip-count{color:var(--faint);font-variant-numeric:tabular-nums}
+    .pip-head{display:flex;align-items:center;gap:10px;padding:9px 12px 9px 14px;background:var(--surface);border-bottom:1px solid var(--line);font-size:12.5px}
+    .pip-title{flex:1;min-width:0;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:var(--accent-text)}
+    .pip-title svg{display:inline-block;vertical-align:-2px;margin-right:6px}
+    .pip-side{flex:none;display:flex;align-items:center;gap:8px}
+    .pip-count{color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .pip-switch{border:0;background:var(--hover);color:var(--muted);font:inherit;font-size:11.5px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap}
+    .pip-switch:hover{color:var(--ink)}
     .pip-list{flex:1;min-height:0;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
     .pip-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 12px 6px}
     .pip-card:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
     .pip-text{display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--ink);font:inherit;font-size:14px;line-height:1.65;padding:0;max-height:360px;overflow-y:auto}
-    .pip-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+    .pip-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:6px;font-size:11.5px;color:var(--faint);font-variant-numeric:tabular-nums}
+    .pip-foot .acts{display:flex;gap:2px}
     .pip-foot button{border:0;background:none;color:var(--muted);font:inherit;cursor:pointer;padding:3px 6px;border-radius:6px}
     .pip-foot button:hover{background:var(--hover);color:var(--ink)}
+    .pip-single{flex:1;min-height:0;display:flex;padding:10px}
+    .pip-note{flex:1;min-height:0;width:100%;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px;line-height:1.7;padding:14px 16px;resize:none;outline:none}
+    .pip-note:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
     .pip-empty{margin:0;padding:18px 14px;color:var(--muted);line-height:1.65}
     :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   `;
 
-  async function toggleFloat() {
-    if (pip) { pip.win.close(); return; }
+  async function openFloat(mode, id) {
+    if (pip) { setPipMode(mode, id); return; }
     if (!pipOK) { showToast('항상 위 창은 PC의 Chrome·Edge에서 열 수 있어요.'); return; }
     try {
-      const win = await window.documentPictureInPicture.requestWindow({ width: 360, height: 520 });
-      setupPip(win);
+      const size = mode === 'single' ? { width: 340, height: 420 } : { width: 360, height: 520 };
+      const win = await window.documentPictureInPicture.requestWindow(size);
+      setupPip(win, mode, id);
     } catch (e) {
       showToast('창을 열지 못했어요. 버튼을 다시 눌러 주세요.');
     }
   }
+  function closeFloat() { if (pip) pip.win.close(); }
+  function onFloatAll() {
+    if (pip && pip.mode === 'pinned') closeFloat(); else openFloat('pinned');
+  }
+  function onFloatOne() {
+    const id = S.sel;
+    if (!id) return;
+    if (pip && pip.mode === 'single' && pip.singleId === id) closeFloat(); else openFloat('single', id);
+  }
+  function setPipMode(mode, id) {
+    if (!pip) return;
+    flushPending();
+    pip.mode = mode;
+    pip.singleId = mode === 'single' ? id : null;
+    renderPip(); renderFloat();
+  }
 
-  function setupPip(win) {
+  function setupPip(win, mode, id) {
     const d = win.document;
     d.documentElement.lang = 'ko';
-    d.title = '고정 메모';
     document.querySelectorAll('link[rel="stylesheet"]').forEach((l) => d.head.append(l.cloneNode(true)));
     const st = d.createElement('style');
     st.textContent = document.getElementById('tokens').textContent + PIP_CSS;
     d.head.append(st);
-    d.body.innerHTML = '<div class="pip"><header class="pip-head"><span class="pip-title">' + PIN_SMALL + '고정 메모</span><span class="pip-count" id="pipCount"></span></header>'
+    d.body.innerHTML = '<div class="pip">'
+      + '<header class="pip-head"><span class="pip-title" id="pipTitle"></span>'
+      + '<span class="pip-side"><span class="pip-count" id="pipCount"></span><button type="button" class="pip-switch" id="pipAll" hidden>고정 메모 전체</button></span></header>'
       + '<div class="pip-list" id="pipList"></div>'
-      + '<p class="pip-empty" id="pipEmpty" hidden>고정한 메모가 없어요. 메모를 열고 <b>고정</b>을 누르면 여기에 떠요.</p></div>';
-    pip = { win, d, list: d.getElementById('pipList'), count: d.getElementById('pipCount'), empty: d.getElementById('pipEmpty'), cards: new Map() };
+      + '<div class="pip-single" id="pipSingle" hidden><textarea class="pip-note" id="pipNote" spellcheck="false" aria-label="메모 내용"></textarea></div>'
+      + '<p class="pip-empty" id="pipEmpty" hidden></p></div>';
+    pip = {
+      win, d, mode, singleId: mode === 'single' ? id : null, noteFor: null,
+      title: d.getElementById('pipTitle'), count: d.getElementById('pipCount'), allBtn: d.getElementById('pipAll'),
+      list: d.getElementById('pipList'), single: d.getElementById('pipSingle'), note: d.getElementById('pipNote'),
+      empty: d.getElementById('pipEmpty'), cards: new Map(),
+    };
 
-    pip.list.addEventListener('input', (e) => {
+    d.body.addEventListener('input', (e) => {
       const ta = e.target;
       if (!ta.dataset || !ta.dataset.id) return;
-      autoGrow(ta);
+      if (ta !== pip.note) autoGrow(ta);
       editMemo(ta.dataset.id, ta.value, 'pip');
+      if (ta === pip.note) setPipTitle(splitMemo(ta.value).title, false);
     });
-    pip.list.addEventListener('focusout', (e) => {
+    d.body.addEventListener('focusout', (e) => {
       const ta = e.target;
       if (ta.dataset && ta.dataset.id && timers.has(ta.dataset.id)) flush(ta.dataset.id);
     });
-    pip.list.addEventListener('click', (e) => {
-      const b = e.target.closest && e.target.closest('[data-unpin]');
-      if (b) setPinned(b.dataset.unpin, false);
+    d.body.addEventListener('click', (e) => {
+      const t = e.target.closest ? e.target : null;
+      if (!t) return;
+      const un = t.closest('[data-unpin]');
+      if (un) { setPinned(un.dataset.unpin, false); return; }
+      const solo = t.closest('[data-solo]');
+      if (solo) { setPipMode('single', solo.dataset.solo); return; }
+      if (t.closest('#pipAll')) setPipMode('pinned');
     });
     d.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && (e.key || '').toLowerCase() === 's') { e.preventDefault(); flushPending(); }
@@ -932,6 +984,17 @@ service cloud.firestore {
     ta.style.height = Math.min(ta.scrollHeight, 360) + 'px';
   }
 
+  // 사용자가 지금 그 칸에 쓰고 있으면 내용을 덮어쓰지 않는다
+  const pipTyping = (ta) => pip.d.activeElement === ta && pip.d.hasFocus();
+
+  function setPipTitle(text, withPin) {
+    const t = pip.title;
+    t.textContent = '';
+    if (withPin) t.insertAdjacentHTML('afterbegin', PIN_SMALL);
+    t.append(pip.d.createTextNode(text));
+    pip.d.title = text;
+  }
+
   function makePipCard(id) {
     const d = pip.d;
     const root = d.createElement('section'); root.className = 'pip-card';
@@ -940,8 +1003,11 @@ service cloud.firestore {
     ta.setAttribute('aria-label', '고정 메모 내용');
     const foot = d.createElement('footer'); foot.className = 'pip-foot';
     const time = d.createElement('span');
+    const acts = d.createElement('span'); acts.className = 'acts';
+    const solo = d.createElement('button'); solo.type = 'button'; solo.dataset.solo = id; solo.textContent = '이 메모만';
     const un = d.createElement('button'); un.type = 'button'; un.dataset.unpin = id; un.textContent = '고정 해제';
-    foot.append(time, un);
+    acts.append(solo, un);
+    foot.append(time, acts);
     root.append(ta, foot);
     const c = { root, ta, time };
     pip.cards.set(id, c);
@@ -950,15 +1016,45 @@ service cloud.firestore {
 
   function renderPip() {
     if (!pip) return;
+    if (pip.mode === 'single') {
+      pip.list.hidden = true;
+      pip.allBtn.hidden = false;
+      const m = S.memos.get(pip.singleId);
+      if (!m) {
+        setPipTitle('메모', false);
+        pip.count.textContent = '';
+        pip.single.hidden = true;
+        pip.empty.hidden = false;
+        pip.empty.textContent = '이 메모는 지워졌어요. 앱에서 다른 메모를 열고 띄우기를 누르세요.';
+        return;
+      }
+      pip.single.hidden = false;
+      pip.empty.hidden = true;
+      pip.note.dataset.id = m.id;
+      if (pip.noteFor !== m.id || (!pipTyping(pip.note) && pip.note.value !== m.body)) {
+        pip.note.value = m.body;
+        pip.noteFor = m.id;
+      }
+      setPipTitle(splitMemo(m.body).title, false);
+      pip.count.textContent = relTime(m.updatedAt || m.createdAt || Date.now());
+      return;
+    }
+
+    pip.single.hidden = true;
+    pip.allBtn.hidden = true;
+    pip.list.hidden = false;
+    pip.noteFor = null;
+    setPipTitle('고정 메모', true);
     const list = pinnedMemos().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     pip.count.textContent = list.length ? list.length + '개' : '';
     pip.empty.hidden = list.length > 0;
+    pip.empty.textContent = '고정한 메모가 없어요. 메모를 열고 고정을 누르면 여기에 떠요.';
     const keep = new Set();
     list.forEach((m, i) => {
       keep.add(m.id);
       const c = pip.cards.get(m.id) || makePipCard(m.id);
       if (pip.list.children[i] !== c.root) pip.list.insertBefore(c.root, pip.list.children[i] || null);
-      if (pip.d.activeElement !== c.ta && c.ta.value !== m.body) { c.ta.value = m.body; autoGrow(c.ta); }
+      if (!pipTyping(c.ta) && c.ta.value !== m.body) { c.ta.value = m.body; autoGrow(c.ta); }
       c.time.textContent = relTime(m.updatedAt || m.createdAt || Date.now());
     });
     for (const [id, c] of pip.cards) if (!keep.has(id)) { c.root.remove(); pip.cards.delete(id); }
@@ -1116,7 +1212,8 @@ service cloud.firestore {
     copyText(text, '메모 전체를 복사했어요', () => { el.editor.focus(); el.editor.select(); showToast('전체 선택했어요. 복사 키를 눌러 주세요.'); });
   });
   el.del.addEventListener('click', deleteCurrent);
-  el.float.addEventListener('click', toggleFloat);
+  el.float.addEventListener('click', onFloatAll);
+  el.pop.addEventListener('click', onFloatOne);
   el.sync.addEventListener('click', () => { if (el.sync.dataset.s === 'error') { lastError = null; flushAll(); updateSync(); } });
   el.bannerAct.addEventListener('click', openSettings);
   el.settingsBtn.addEventListener('click', openSettings);
