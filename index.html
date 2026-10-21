@@ -190,14 +190,21 @@ svg{flex:none}
 .ed-meta{flex:1;min-width:0;font-size:12.5px;color:var(--paper-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .ed-actions{display:flex;gap:2px;position:relative}
 .back{display:none;margin-left:-12px}
-#editor{flex:1;min-height:0;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--paper-ink);font:inherit;font-size:16px;line-height:1.8;letter-spacing:-.005em;padding-block:26px 48px;padding-inline:max(26px, calc((100% - 720px) / 2))}
+#editor{flex:1;min-height:0;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--paper-ink);font:inherit;font-size:var(--memo-size, 16px);line-height:1.8;letter-spacing:-.005em;padding-block:26px 48px;padding-inline:max(26px, calc((100% - 720px) / 2))}
 #editor::placeholder{color:var(--paper-muted)}
 #editor::-webkit-scrollbar{width:8px}
 #editor::-webkit-scrollbar-thumb{background:var(--paper-line);border-radius:4px}
 #editor::-webkit-scrollbar-track{background:transparent}
 .ed-foot{display:flex;gap:14px;justify-content:flex-end;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--paper-line);font-size:12px;color:var(--paper-muted);font-variant-numeric:tabular-nums}
 .ed-foot b{font-weight:600;color:var(--paper-ink)}
-.note-mode .color-pop{max-width:calc(100vw - 12px);flex-wrap:wrap}
+.note-mode .color-pop,.note-mode .font-pop{max-width:calc(100vw - 12px);flex-wrap:wrap}
+.font-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:6;width:max-content;display:flex;align-items:center;gap:4px;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);color:var(--ink)}
+.font-pop button{height:32px;min-width:34px;padding:0 8px;border:0;border-radius:8px;background:var(--hover);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.font-pop button:hover{background:var(--accent-soft);color:var(--accent-text)}
+.font-pop .fs-val{min-width:44px;text-align:center;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.font-pop .fs-reset{background:transparent;color:var(--muted);font-weight:500}
+.note-mode .font-pop button{min-width:30px;padding:0 6px}
+.note-mode .font-pop .fs-val{min-width:38px}
 /* ── PC 프로그램 안에서 실행될 때 ── */
 .desk-btn{display:none}
 body.desktop:not(.note-mode) .pop-btn{display:inline-flex}
@@ -286,7 +293,7 @@ body.note-mode{padding:0}
 .note-mode .ed-actions .lbl{display:none}
 .note-mode .ed-actions .icon-btn{padding:0 7px;height:28px;opacity:.55;transition:opacity .15s}
 .note-mode .ed-head:hover .icon-btn,.note-mode .ed-actions .icon-btn:focus-visible,.note-mode .ed-actions .icon-btn[aria-expanded="true"]{opacity:1}
-.note-mode #editor{padding:8px 16px 16px;font-size:15px;line-height:1.7}
+.note-mode #editor{padding:8px 16px 16px;font-size:var(--memo-size, 15px);line-height:1.7}
 .note-hint{display:none;margin-right:auto}
 .note-mode .note-hint{display:inline}
 .note-mode .c-nosp{display:none}
@@ -369,6 +376,9 @@ body.note-mode{padding:0}
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor" stroke="none"/></svg>
             <span class="lbl" id="popLbl">띄우기</span>
           </button>
+          <button class="icon-btn" id="fontBtn" type="button" aria-haspopup="true" aria-expanded="false" title="글자 크기 (Ctrl + / Ctrl −)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 14h-5"/><path d="M16 16v-3.5a2.5 2.5 0 0 1 5 0V16"/><path d="M4.5 13h6"/><path d="m3 16 4.5-9 4.5 9"/></svg>
+            <span class="lbl">글자</span>
+          </button>
           <button class="icon-btn" id="colorBtn" type="button" aria-haspopup="true" aria-expanded="false" title="포스트잇 색 바꾸기">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2C19.7 16.4 22 14 22 11c0-5-4.5-9-10-9z"/></svg>
             <span class="lbl">색</span>
@@ -383,6 +393,12 @@ body.note-mode{padding:0}
           </button>
           <button class="icon-btn desk-btn" id="closeWinBtn" type="button" aria-label="창 닫기" title="창 닫기"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           <div class="color-pop" id="colorPop" role="group" aria-label="포스트잇 색" hidden></div>
+          <div class="font-pop" id="fontPop" role="group" aria-label="글자 크기" hidden>
+            <button type="button" id="fsDown" aria-label="글자 작게">가−</button>
+            <span class="fs-val" id="fsVal" aria-live="polite">16</span>
+            <button type="button" id="fsUp" aria-label="글자 크게">가+</button>
+            <button type="button" class="fs-reset" id="fsReset">기본</button>
+          </div>
         </div>
       </header>
       <textarea id="editor" spellcheck="false" placeholder="첫 줄이 제목이 돼요.&#10;떠오른 걸 바로 적으세요. 쓰는 동안 자동 저장됩니다." aria-label="메모 내용"></textarea>
@@ -568,7 +584,7 @@ service cloud.firestore {
     banner: $('#banner'), bannerText: $('#bannerText'), bannerAct: $('#bannerAct'),
     float: $('#floatBtn'), floatText: $('#floatText'), floatCount: $('#floatCount'),
     edBody: $('#edBody'), edEmpty: $('#edEmpty'), editor: $('#editor'), meta: $('#edMeta'),
-    pin: $('#pinBtn'), pinLbl: $('#pinLbl'), pop: $('#popBtn'), popLbl: $('#popLbl'), tear: $('#tearBtn'), topBtn: $('#topBtn'), closeWinBtn: $('#closeWinBtn'), colorBtn: $('#colorBtn'), colorPop: $('#colorPop'), sizeW: $('#sizeW'), sizeH: $('#sizeH'), copy: $('#copyBtn'),
+    pin: $('#pinBtn'), pinLbl: $('#pinLbl'), pop: $('#popBtn'), popLbl: $('#popLbl'), tear: $('#tearBtn'), topBtn: $('#topBtn'), closeWinBtn: $('#closeWinBtn'), colorBtn: $('#colorBtn'), colorPop: $('#colorPop'), fontBtn: $('#fontBtn'), fontPop: $('#fontPop'), fsDown: $('#fsDown'), fsUp: $('#fsUp'), fsVal: $('#fsVal'), fsReset: $('#fsReset'), sizeW: $('#sizeW'), sizeH: $('#sizeH'), copy: $('#copyBtn'),
     edEmptyTitle: $('#edEmptyTitle'), edEmptyText: $('#edEmptyText'), del: $('#delBtn'), back: $('#backBtn'),
     newBtn: $('#newBtn'), edNew: $('#edNew'), fab: $('#fab'), cAll: $('#cAll'), cNoSp: $('#cNoSp'),
     toast: $('#toast'), toastText: $('#toastText'), toastAct: $('#toastAction'),
@@ -1059,11 +1075,46 @@ service cloud.firestore {
     const cur = colorKey(m);
     el.colorPop.querySelectorAll('.swatch').forEach((b) => b.setAttribute('aria-pressed', b.dataset.color === cur ? 'true' : 'false'));
   }
+  /* ── 글자 크기: 창마다 따로 (목록 창은 하나, 띄운 메모 창·카드는 메모마다), 이 기기에 기억 ── */
+  const FS_KEY = 'pocket-memo.fontsize.v1';
+  const FS_STEPS = [11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32, 36, 40];
+  const FS_WIN = NOTE_ID || 'main';
+  const fsDefault = (key) => (key === 'main' ? 16 : 15);
+  function fsAll() { try { return JSON.parse(ls.get(FS_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function getFont(key) {
+    const v = Number(fsAll()[key]);
+    return Number.isFinite(v) && v >= 8 && v <= 72 ? v : fsDefault(key);
+  }
+  function setFont(key, v) {
+    const all = fsAll();
+    if (v == null || v === fsDefault(key)) delete all[key]; else all[key] = v;
+    ls.set(FS_KEY, JSON.stringify(all));
+  }
+  function stepFont(cur, dir) {
+    if (dir > 0) return FS_STEPS.find((x) => x > cur) || FS_STEPS[FS_STEPS.length - 1];
+    return [...FS_STEPS].reverse().find((x) => x < cur) || FS_STEPS[0];
+  }
+  function applyFont() {
+    const v = getFont(FS_WIN);
+    el.edBody.style.setProperty('--memo-size', v + 'px');
+    el.fsVal.textContent = v + 'px';
+  }
+  function bumpFont(dir) {
+    setFont(FS_WIN, dir === 0 ? null : stepFont(getFont(FS_WIN), dir));
+    applyFont();
+  }
+  function toggleFontPop(show) {
+    const openIt = show === undefined ? el.fontPop.hidden : show;
+    el.fontPop.hidden = !openIt;
+    el.fontBtn.setAttribute('aria-expanded', openIt ? 'true' : 'false');
+    if (openIt) { toggleColorPop(false); applyFont(); }
+  }
+
   function toggleColorPop(show) {
     const openIt = show === undefined ? el.colorPop.hidden : show;
     el.colorPop.hidden = !openIt;
     el.colorBtn.setAttribute('aria-expanded', openIt ? 'true' : 'false');
-    if (openIt) renderColorPop(S.memos.get(S.sel));
+    if (openIt) { renderColorPop(S.memos.get(S.sel)); if (!el.fontPop.hidden) toggleFontPop(false); }
   }
 
   function setPinned(id, value) {
@@ -1105,8 +1156,9 @@ service cloud.firestore {
     body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
     .pip{height:100%;display:flex;flex-direction:column}
     .pip-list{flex:1;min-height:0;overflow-y:auto;padding:6px;display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));grid-auto-rows:minmax(120px, 1fr);gap:6px}
-    .pip-card{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--paper, #FFF4A8);border-radius:8px;color:#2A2718;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-    .pip-text{flex:1;min-height:0;display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:#2A2718;font:inherit;font-size:14.5px;line-height:1.65;padding:12px 14px 4px;overflow-y:auto}
+    .pip-card{container-type:inline-size;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--paper, #FFF4A8);border-radius:8px;color:#2A2718;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+    .pip-text{flex:1;min-height:0;display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:#2A2718;font:inherit;font-size:15px;line-height:1.65;padding:12px 14px 4px;overflow-y:auto}
+    @container (max-width: 230px){ .pip-time{display:none} .pip-foot{justify-content:flex-end} }
     .pip-text::-webkit-scrollbar{width:6px}
     .pip-text::-webkit-scrollbar-thumb{background:rgba(42,39,24,.22);border-radius:3px}
     .pip-text::-webkit-scrollbar-track{background:transparent}
@@ -1190,6 +1242,8 @@ service cloud.firestore {
       if (!e.target.closest) return;
       const b = e.target.closest('[data-unfloat]');
       if (b) { toggleFloatMemo(b.dataset.unfloat); return; }
+      const fsb = e.target.closest('[data-fs]');
+      if (fsb) { const k = fsb.dataset.fsid; setFont(k, stepFont(getFont(k), Number(fsb.dataset.fs))); renderPip(); return; }
       const cy = e.target.closest('[data-cycle]');
       if (cy) {
         const m = S.memos.get(cy.dataset.cycle);
@@ -1197,8 +1251,26 @@ service cloud.firestore {
       }
     });
     d.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key || '').toLowerCase() === 's') { e.preventDefault(); flushPending(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key || '').toLowerCase() === 's') { e.preventDefault(); flushPending(); return; }
+      const ta = d.activeElement;
+      const k = ta && ta.dataset && ta.dataset.id;
+      if (!k || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+      let dir = null;
+      if (e.key === '=' || e.key === '+') dir = 1; else if (e.key === '-' || e.key === '_') dir = -1; else if (e.key === '0') dir = 0;
+      if (dir === null) return;
+      e.preventDefault();
+      setFont(k, dir === 0 ? null : stepFont(getFont(k), dir));
+      renderPip();
     });
+    d.addEventListener('wheel', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const card = e.target.closest && e.target.closest('.pip-card');
+      const ta = card && card.querySelector('.pip-text');
+      if (!ta) return;
+      e.preventDefault();
+      setFont(ta.dataset.id, stepFont(getFont(ta.dataset.id), e.deltaY < 0 ? 1 : -1));
+      renderPip();
+    }, { passive: false });
     win.addEventListener('pagehide', () => { flushPending(); pip = null; renderFloat(); });
     // 창 모서리를 끌어 바꾼 크기를 다음에도 쓰도록 기억
     let rt = 0;
@@ -1216,11 +1288,13 @@ service cloud.firestore {
     ta.className = 'pip-text'; ta.dataset.id = id; ta.spellcheck = false; ta.rows = 3;
     ta.setAttribute('aria-label', '메모 내용');
     const foot = d.createElement('footer'); foot.className = 'pip-foot';
-    const time = d.createElement('span');
+    const time = d.createElement('span'); time.className = 'pip-time';
     const acts = d.createElement('span'); acts.className = 'acts';
+    const small = d.createElement('button'); small.type = 'button'; small.dataset.fs = '-1'; small.dataset.fsid = id; small.textContent = '가−'; small.title = '글자 작게';
+    const big = d.createElement('button'); big.type = 'button'; big.dataset.fs = '1'; big.dataset.fsid = id; big.textContent = '가+'; big.title = '글자 크게';
     const col = d.createElement('button'); col.type = 'button'; col.dataset.cycle = id; col.textContent = '색'; col.title = '포스트잇 색 바꾸기';
     const down = d.createElement('button'); down.type = 'button'; down.dataset.unfloat = id; down.textContent = '내리기';
-    acts.append(col, down);
+    acts.append(small, big, col, down);
     foot.append(time, acts);
     root.append(ta, foot);
     const c = { root, ta, time };
@@ -1239,6 +1313,7 @@ service cloud.firestore {
       const c = pip.cards.get(m.id) || makePipCard(m.id);
       if (pip.list.children[i] !== c.root) pip.list.insertBefore(c.root, pip.list.children[i] || null);
       paintPaper(c.root, m);
+      c.ta.style.fontSize = getFont(m.id) + 'px';
       if (!pipTyping(c.ta) && c.ta.value !== m.body) c.ta.value = m.body;
       c.time.textContent = relTime(m.updatedAt || m.createdAt || Date.now());
     });
@@ -1565,6 +1640,20 @@ service cloud.firestore {
     if (b && S.sel) { setColor(S.sel, b.dataset.color); toggleColorPop(false); }
   });
   document.addEventListener('click', (e) => { if (!el.colorPop.hidden && !el.colorPop.contains(e.target)) toggleColorPop(false); });
+  el.fontBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFontPop(); });
+  el.fontPop.addEventListener('click', (e) => e.stopPropagation());
+  el.fsUp.addEventListener('click', () => bumpFont(1));
+  el.fsDown.addEventListener('click', () => bumpFont(-1));
+  el.fsReset.addEventListener('click', () => bumpFont(0));
+  document.addEventListener('click', (e) => { if (!el.fontPop.hidden && !el.fontPop.contains(e.target) && e.target !== el.fontBtn) toggleFontPop(false); });
+  // Ctrl + 마우스 휠로도 이 창 글자 크기 조절
+  window.addEventListener('wheel', (e) => {
+    if (!(e.ctrlKey || e.metaKey) || !el.edBody.contains(e.target)) return;
+    e.preventDefault();
+    bumpFont(e.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
+  window.addEventListener('storage', (e) => { if (e.key === FS_KEY) { applyFont(); renderPip(); } });
+  applyFont();
   document.querySelectorAll('[data-size]').forEach((b) => b.addEventListener('click', () => {
     const [w, h] = b.dataset.size.split('x').map(Number);
     setFloatSize(w, h);
@@ -1660,6 +1749,10 @@ service cloud.firestore {
     const typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
     if ((e.ctrlKey || e.metaKey) && e.key === '\\' && !NOTE_ID && !mq.matches) { e.preventDefault(); setCollapsed(!isCollapsed()); return; }
     if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !el.sheet.open) { e.preventDefault(); if (isCollapsed()) setCollapsed(false); el.q.focus(); return; }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); bumpFont(1); return; }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === '-' || e.key === '_')) { e.preventDefault(); bumpFont(-1); return; }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key === '0') { e.preventDefault(); bumpFont(0); return; }
+    if (e.key === 'Escape' && !el.fontPop.hidden) { toggleFontPop(false); return; }
     if (e.key === 'Escape' && !el.colorPop.hidden) { toggleColorPop(false); return; }
     if (e.key === 'Escape' && a === el.editor && mq.matches) el.back.click();
   });
