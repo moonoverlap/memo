@@ -1058,7 +1058,6 @@ service cloud.firestore {
     .pip{height:100%;display:flex;flex-direction:column}
     .pip-list{flex:1;min-height:0;overflow-y:auto;padding:6px;display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));grid-auto-rows:minmax(150px, 1fr);gap:6px}
     .pip-card{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--paper, #FFF4A8);border-radius:8px;color:#2A2718;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-    .pip-card:focus-within{box-shadow:0 0 0 2px var(--accent)}
     .pip-text{flex:1;min-height:0;display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:#2A2718;font:inherit;font-size:14.5px;line-height:1.65;padding:12px 14px 4px;overflow-y:auto}
     .pip-text::-webkit-scrollbar{width:6px}
     .pip-text::-webkit-scrollbar-thumb{background:rgba(42,39,24,.22);border-radius:3px}
@@ -1069,7 +1068,8 @@ service cloud.firestore {
     .pip-foot button{border:0;background:none;color:rgba(42,39,24,.8);font:inherit;cursor:pointer;padding:3px 6px;border-radius:6px}
     .pip-foot button:hover{background:rgba(42,39,24,.08);color:#2A2718}
     .pip-empty{margin:0;padding:18px 14px;color:var(--muted);line-height:1.65}
-    :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .pip-text:focus,.pip-text:focus-visible{outline:none}
+    button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   `;
 
   // 화면에 실제로 있는 띄운 메모 (띄운 순서대로)
