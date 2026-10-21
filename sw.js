@@ -1,6 +1,6 @@
 // 포켓 메모 — 오프라인에서도 앱이 열리도록 화면 파일을 보관합니다.
 // 메모 데이터(Firebase)는 여기서 다루지 않습니다.
-const CACHE = 'pocket-memo-v1';
+const CACHE = 'pocket-memo-v2';
 const SHELL = [
   './',
   './index.html',
@@ -31,14 +31,18 @@ self.addEventListener('fetch', (e) => {
 
   // 화면: 새 버전 먼저, 오프라인이면 보관본
   if (req.mode === 'navigate') {
+    // 화면은 항상 서버에 새 버전이 있는지 먼저 확인 (오프라인이면 보관본)
+    const isApp = /\/memo\/(index\.html)?$/.test(url.pathname);
     e.respondWith(
-      fetch(req)
+      fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put('./index.html', copy));
+          if (isApp && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put('./index.html', copy));
+          }
           return res;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(() => (isApp ? caches.match('./index.html') : caches.match(req)))
     );
     return;
   }

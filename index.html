@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>포켓 메모</title>
 <meta name="description" content="PC와 폰에서 같은 메모를 보고, PC에서는 고정한 메모를 항상 위 창으로 띄우는 메모장">
+<meta name="app-build" content="20261021-130813">
 <meta name="theme-color" id="themeColor" content="#F4F6FB">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -1334,6 +1335,35 @@ service cloud.firestore {
     const w = window.open(url, 'pocket-note-' + id, feat.join(','));
     if (!w) showToast('새 창이 막혔어요. 주소창 오른쪽에서 팝업을 허용해 주세요.');
   }
+
+  /* ── 새 버전 자동 반영: 서버의 화면이 바뀌면 방해되지 않을 때 새로고침 ── */
+  const BUILD = (document.querySelector('meta[name="app-build"]') || {}).content || '';
+  let updateReady = false, updateToastShown = false;
+  async function checkUpdate() {
+    if (updateReady || !BUILD || (location.protocol !== 'https:' && location.hostname !== 'localhost')) return;
+    try {
+      const r = await fetch(location.pathname, { cache: 'no-store' });
+      if (!r.ok) return;
+      const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+      const meta = doc.querySelector('meta[name="app-build"]');
+      if (meta && meta.content && meta.content !== BUILD) { updateReady = true; maybeReload(); }
+    } catch (e) { /* 오프라인이면 다음에 */ }
+  }
+  function maybeReload() {
+    if (!updateReady) return;
+    const saving = dirty.size || timers.size || pending;
+    const away = document.visibilityState === 'hidden' || !document.hasFocus();
+    if (away && !saving && !pip && !(el.sheet && el.sheet.open)) { location.reload(); return; }
+    if (!away && !updateToastShown && !NOTE_ID) {
+      updateToastShown = true;
+      showToast('새 버전이 나왔어요', '새로고침', () => { flushPending(); setTimeout(() => location.reload(), 300); });
+    }
+  }
+  setTimeout(checkUpdate, 5000);
+  setInterval(checkUpdate, 10 * 60 * 1000);
+  window.addEventListener('focus', checkUpdate);
+  window.addEventListener('blur', () => setTimeout(maybeReload, 1500));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') setTimeout(maybeReload, 1500); });
 
   /* ── 설정 · 로그인 · 설치 ── */
   const THEME_KEY = 'pocket-memo.theme';
