@@ -197,6 +197,17 @@ svg{flex:none}
 #editor::-webkit-scrollbar-track{background:transparent}
 .ed-foot{display:flex;gap:14px;justify-content:flex-end;flex-wrap:wrap;padding:9px 18px;border-top:1px solid var(--paper-line);font-size:12px;color:var(--paper-muted);font-variant-numeric:tabular-nums}
 .ed-foot b{font-weight:600;color:var(--paper-ink)}
+.note-mode .color-pop{max-width:calc(100vw - 12px);flex-wrap:wrap}
+/* ── PC 프로그램 안에서 실행될 때 ── */
+.desk-btn{display:none}
+body.desktop:not(.note-mode) .pop-btn{display:inline-flex}
+body.desktop .tear-btn,body.desktop .float-cta,body.desktop #railFloat,body.desktop .web-only{display:none !important}
+body:not(.desktop) .desk-only{display:none !important}
+.desktop.note-mode .desk-btn{display:inline-flex}
+.desktop.note-mode .ed-head{-webkit-app-region:drag;user-select:none;cursor:default}
+.desktop.note-mode .ed-head button,.desktop.note-mode .color-pop{-webkit-app-region:no-drag}
+.desktop.note-mode #topBtn[aria-pressed="true"]{opacity:1;color:var(--paper-ink)}
+.desktop.note-mode #topBtn[aria-pressed="true"] svg path:last-child{fill:currentColor}
 .color-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:6;display:flex;gap:6px;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
 .swatch{width:26px;height:26px;border-radius:50%;border:1px solid rgba(0,0,0,.14);cursor:pointer;padding:0}
 .swatch[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:2px}
@@ -336,6 +347,7 @@ body.note-mode{padding:0}
         </button>
         <span class="ed-meta" id="edMeta"></span>
         <div class="ed-actions">
+          <button class="icon-btn desk-btn" id="topBtn" type="button" aria-pressed="false" aria-label="항상 위에 고정" title="항상 위에 고정"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></button>
           <button class="icon-btn" id="pinBtn" type="button" aria-pressed="false" title="고정하면 목록 맨 위에 붙어요">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
             <span class="lbl" id="pinLbl">고정</span>
@@ -360,6 +372,7 @@ body.note-mode{padding:0}
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             <span class="lbl">삭제</span>
           </button>
+          <button class="icon-btn desk-btn" id="closeWinBtn" type="button" aria-label="창 닫기" title="창 닫기"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
           <div class="color-pop" id="colorPop" role="group" aria-label="포스트잇 색" hidden></div>
         </div>
       </header>
@@ -439,13 +452,20 @@ service cloud.firestore {
       <button class="btn primary" id="cfgSave" type="button">연결하기</button>
     </section>
 
-    <section class="sec">
+    <section class="sec web-only">
       <h3>앱으로 쓰기</h3>
       <p id="installText"></p>
       <button class="btn primary" id="installBtn" type="button" hidden>이 기기에 앱으로 설치</button>
     </section>
 
-    <section class="sec">
+    <section class="sec desk-only">
+      <h3>바탕화면에 메모 띄우기</h3>
+      <p>메모를 열고 <b>띄우기</b>를 누르면 그 메모가 스티커처럼 따로 떠요. 여러 장을 띄울 수 있어요.</p>
+      <p>메모 창의 📌을 누르면 다른 프로그램 위에 항상 떠 있고, 다시 누르면 풀려요. 위쪽 띠를 끌어 옮기고, 모서리를 끌어 크기를 바꿔요. 위치·크기·고정은 메모마다 기억해요.</p>
+      <p>작업표시줄 오른쪽 트레이의 포켓 메모 아이콘을 오른쪽 클릭하면 목록 열기, 띄운 메모 모두 앞으로, Windows 시작 시 실행을 고를 수 있어요.</p>
+    </section>
+
+    <section class="sec web-only">
       <h3>PC 바탕화면에 메모 띄우기</h3>
       <p><b>새 창</b>: 스티커 메모처럼 메모 한 장을 따로 떼어낸 창으로 열어요. 여러 장을 열어 바탕화면 원하는 곳에 둘 수 있고, 다음에 열면 같은 자리·크기로 열려요. 이 창들을 다른 프로그램 위에 계속 두려면 Windows의 PowerToys ‘항상 위에’ 기능(Win+Ctrl+T)을 각 창에서 누르세요.</p>
       <p><b>띄우기</b>: 설치 없이 바로 다른 프로그램 위에 떠 있는 창 하나에 메모를 여러 장 나란히 넣어요. 메모마다 띄우기/내리기로 넣고 빼요. Chrome·Edge(PC) 기능이라 이 창은 한 번에 하나만 열리고, 메모앱 창을 닫으면 같이 닫혀요(최소화는 괜찮아요).</p>
@@ -489,6 +509,11 @@ service cloud.firestore {
   const NOTE_ID = new URLSearchParams(location.search).get('note');
   if (NOTE_ID) document.body.classList.add('note-mode');
   const NOTEPOS_KEY = 'pocket-memo.notepos.v1';
+  // PC 프로그램(포켓 메모 for Windows) 안에서 열렸는지
+  const DESK = (window.pocketDesktop && window.pocketDesktop.isDesktop) ? window.pocketDesktop : null;
+  if (DESK) document.body.classList.add('desktop');
+  let deskOpen = new Set();
+  let deskBg = '';
 
   /* Firebase 프로젝트: pocket-memo (pocket-memo-c13cc). 웹 앱용 공개 설정값이라 코드에 넣어도 됩니다.
      메모 보호는 Firestore 보안 규칙(본인 계정만 읽기·쓰기)이 맡습니다. */
@@ -523,7 +548,7 @@ service cloud.firestore {
     banner: $('#banner'), bannerText: $('#bannerText'), bannerAct: $('#bannerAct'),
     float: $('#floatBtn'), floatText: $('#floatText'), floatCount: $('#floatCount'),
     edBody: $('#edBody'), edEmpty: $('#edEmpty'), editor: $('#editor'), meta: $('#edMeta'),
-    pin: $('#pinBtn'), pinLbl: $('#pinLbl'), pop: $('#popBtn'), popLbl: $('#popLbl'), tear: $('#tearBtn'), colorBtn: $('#colorBtn'), colorPop: $('#colorPop'), sizeW: $('#sizeW'), sizeH: $('#sizeH'), copy: $('#copyBtn'),
+    pin: $('#pinBtn'), pinLbl: $('#pinLbl'), pop: $('#popBtn'), popLbl: $('#popLbl'), tear: $('#tearBtn'), topBtn: $('#topBtn'), closeWinBtn: $('#closeWinBtn'), colorBtn: $('#colorBtn'), colorPop: $('#colorPop'), sizeW: $('#sizeW'), sizeH: $('#sizeH'), copy: $('#copyBtn'),
     edEmptyTitle: $('#edEmptyTitle'), edEmptyText: $('#edEmptyText'), del: $('#delBtn'), back: $('#backBtn'),
     newBtn: $('#newBtn'), edNew: $('#edNew'), fab: $('#fab'), cAll: $('#cAll'), cNoSp: $('#cNoSp'),
     toast: $('#toast'), toastText: $('#toastText'), toastAct: $('#toastAction'),
@@ -713,6 +738,7 @@ service cloud.firestore {
       document.body.style.background = COLORS[colorKey(m)].bg;
       const tc = document.getElementById('themeColor');
       if (tc) tc.setAttribute('content', COLORS[colorKey(m)].bar);
+      if (DESK && deskBg !== COLORS[colorKey(m)].bg) { deskBg = COLORS[colorKey(m)].bg; DESK.setColor(deskBg); }
     }
     renderColorPop(m);
     el.pin.setAttribute('aria-pressed', m.pinned ? 'true' : 'false');
@@ -751,7 +777,7 @@ service cloud.firestore {
     el.floatCount.textContent = String(n || pinnedMemos().length);
     el.float.dataset.open = pip ? 'true' : 'false';
     el.floatText.textContent = pip ? '항상 위 창 닫기' : (n ? '띄운 메모 항상 위 창 열기' : '고정 메모 항상 위에 띄우기');
-    const on = !!S.sel && isFloated(S.sel);
+    const on = !!S.sel && (DESK ? deskOpen.has(S.sel) : isFloated(S.sel));
     el.pop.setAttribute('aria-pressed', on ? 'true' : 'false');
     el.popLbl.textContent = on ? '내리기' : '띄우기';
     el.railFloat.setAttribute('aria-pressed', pip ? 'true' : 'false');
@@ -1056,7 +1082,7 @@ service cloud.firestore {
     html,body{margin:0;height:100%}
     body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
     .pip{height:100%;display:flex;flex-direction:column}
-    .pip-list{flex:1;min-height:0;overflow-y:auto;padding:6px;display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));grid-auto-rows:minmax(150px, 1fr);gap:6px}
+    .pip-list{flex:1;min-height:0;overflow-y:auto;padding:6px;display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));grid-auto-rows:minmax(120px, 1fr);gap:6px}
     .pip-card{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--paper, #FFF4A8);border-radius:8px;color:#2A2718;box-shadow:0 1px 3px rgba(0,0,0,.12)}
     .pip-text{flex:1;min-height:0;display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:#2A2718;font:inherit;font-size:14.5px;line-height:1.65;padding:12px 14px 4px;overflow-y:auto}
     .pip-text::-webkit-scrollbar{width:6px}
@@ -1386,7 +1412,33 @@ service cloud.firestore {
   });
   el.del.addEventListener('click', deleteCurrent);
   el.float.addEventListener('click', onFloatAll);
-  el.pop.addEventListener('click', () => toggleFloatMemo(S.sel));
+  el.pop.addEventListener('click', () => (DESK ? deskToggle(S.sel) : toggleFloatMemo(S.sel)));
+  // PC 프로그램: 메모마다 따로 스티커 창
+  function deskToggle(id) {
+    const m = id && S.memos.get(id);
+    if (!m) return;
+    if (deskOpen.has(id)) { DESK.closeNote(id); return; }
+    if (!m.body.trim()) { showToast('내용을 먼저 적어 주세요.'); return; }
+    if (timers.has(id) || dirty.has(id)) flush(id);
+    DESK.openNote(id, { w: floatSize.w, h: floatSize.h, bg: COLORS[colorKey(m)].bg, pinned: true });
+  }
+  if (DESK && !NOTE_ID) {
+    const setOpen = (ids) => { deskOpen = new Set(Array.isArray(ids) ? ids : []); renderFloat(); };
+    DESK.getOpenNotes().then(setOpen, () => {});
+    DESK.onNotesChanged(setOpen);
+  }
+  if (DESK && NOTE_ID) {
+    const setTop = (v) => {
+      el.topBtn.setAttribute('aria-pressed', v ? 'true' : 'false');
+      const t = v ? '고정 풀기' : '항상 위에 고정';
+      el.topBtn.title = t; el.topBtn.setAttribute('aria-label', t);
+    };
+    DESK.getPinned().then(setTop, () => {});
+    el.topBtn.addEventListener('click', async () => {
+      try { setTop(await DESK.setPinned(el.topBtn.getAttribute('aria-pressed') !== 'true')); } catch (e) { /* 무시 */ }
+    });
+    el.closeWinBtn.addEventListener('click', () => { flushPending(); setTimeout(() => DESK.close(), 350); });
+  }
   el.tear.addEventListener('click', () => openNoteWindow(S.sel));
   COLOR_KEYS.forEach((k) => {
     const b = document.createElement('button');
