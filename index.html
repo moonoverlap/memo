@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>포켓 메모</title>
 <meta name="description" content="PC와 폰에서 같은 메모를 보고, PC에서는 고정한 메모를 항상 위 창으로 띄우는 메모장">
-<meta name="app-build" content="20261021-130813">
+<meta name="app-build" content="20261021-131005">
 <meta name="theme-color" id="themeColor" content="#F4F6FB">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -191,7 +191,7 @@ svg{flex:none}
 .ed-meta{flex:1;min-width:0;font-size:12.5px;color:var(--paper-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .ed-actions{display:flex;gap:2px;position:relative}
 .back{display:none;margin-left:-12px}
-#editor{flex:1;min-height:0;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--paper-ink);font:inherit;font-size:var(--memo-size, 16px);line-height:1.8;letter-spacing:-.005em;padding-block:26px 48px;padding-inline:max(26px, calc((100% - 720px) / 2))}
+#editor{flex:1;min-height:0;width:100%;border:0;outline:none;resize:none;background:transparent;color:var(--paper-ink);font:inherit;font-size:var(--memo-size, 10pt);line-height:1.8;letter-spacing:-.005em;padding-block:26px 48px;padding-inline:max(26px, calc((100% - 720px) / 2))}
 #editor::placeholder{color:var(--paper-muted)}
 #editor::-webkit-scrollbar{width:8px}
 #editor::-webkit-scrollbar-thumb{background:var(--paper-line);border-radius:4px}
@@ -294,7 +294,7 @@ body.note-mode{padding:0}
 .note-mode .ed-actions .lbl{display:none}
 .note-mode .ed-actions .icon-btn{padding:0 7px;height:28px;opacity:.55;transition:opacity .15s}
 .note-mode .ed-head:hover .icon-btn,.note-mode .ed-actions .icon-btn:focus-visible,.note-mode .ed-actions .icon-btn[aria-expanded="true"]{opacity:1}
-.note-mode #editor{padding:8px 16px 16px;font-size:var(--memo-size, 15px);line-height:1.7}
+.note-mode #editor{padding:8px 16px 16px;font-size:var(--memo-size, 10pt);line-height:1.7}
 .note-hint{display:none;margin-right:auto}
 .note-mode .note-hint{display:inline}
 .note-mode .c-nosp{display:none}
@@ -396,7 +396,7 @@ body.note-mode{padding:0}
           <div class="color-pop" id="colorPop" role="group" aria-label="포스트잇 색" hidden></div>
           <div class="font-pop" id="fontPop" role="group" aria-label="글자 크기" hidden>
             <button type="button" id="fsDown" aria-label="글자 작게">가−</button>
-            <span class="fs-val" id="fsVal" aria-live="polite">16</span>
+            <span class="fs-val" id="fsVal" aria-live="polite">10pt</span>
             <button type="button" id="fsUp" aria-label="글자 크게">가+</button>
             <button type="button" class="fs-reset" id="fsReset">기본</button>
           </div>
@@ -1077,14 +1077,25 @@ service cloud.firestore {
     el.colorPop.querySelectorAll('.swatch').forEach((b) => b.setAttribute('aria-pressed', b.dataset.color === cur ? 'true' : 'false'));
   }
   /* ── 글자 크기: 창마다 따로 (목록 창은 하나, 띄운 메모 창·카드는 메모마다), 이 기기에 기억 ── */
-  const FS_KEY = 'pocket-memo.fontsize.v1';
-  const FS_STEPS = [11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32, 36, 40];
+  // 단위: pt (기본 10pt). 예전 px 값은 한 번만 pt로 옮김
+  const FS_KEY = 'pocket-memo.fontsize.v2';
+  const FS_STEPS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 28, 32];
   const FS_WIN = NOTE_ID || 'main';
-  const fsDefault = (key) => (key === 'main' ? 16 : 15);
+  const fsDefault = () => 10;
+  (function migrateFontPx() {
+    const old = ls.get('pocket-memo.fontsize.v1');
+    if (!old || ls.get(FS_KEY)) return;
+    try {
+      const o = JSON.parse(old) || {}, n = {};
+      Object.keys(o).forEach((k) => { const v = Math.round(Number(o[k]) * 0.75); if (v >= 6 && v <= 54 && v !== 10) n[k] = v; });
+      ls.set(FS_KEY, JSON.stringify(n));
+    } catch (e) { /* 무시 */ }
+    ls.del('pocket-memo.fontsize.v1');
+  })();
   function fsAll() { try { return JSON.parse(ls.get(FS_KEY) || '{}') || {}; } catch (e) { return {}; } }
   function getFont(key) {
     const v = Number(fsAll()[key]);
-    return Number.isFinite(v) && v >= 8 && v <= 72 ? v : fsDefault(key);
+    return Number.isFinite(v) && v >= 6 && v <= 54 ? v : fsDefault(key);
   }
   function setFont(key, v) {
     const all = fsAll();
@@ -1097,8 +1108,8 @@ service cloud.firestore {
   }
   function applyFont() {
     const v = getFont(FS_WIN);
-    el.edBody.style.setProperty('--memo-size', v + 'px');
-    el.fsVal.textContent = v + 'px';
+    el.edBody.style.setProperty('--memo-size', v + 'pt');
+    el.fsVal.textContent = v + 'pt';
   }
   function bumpFont(dir) {
     setFont(FS_WIN, dir === 0 ? null : stepFont(getFont(FS_WIN), dir));
@@ -1158,7 +1169,7 @@ service cloud.firestore {
     .pip{height:100%;display:flex;flex-direction:column}
     .pip-list{flex:1;min-height:0;overflow-y:auto;padding:6px;display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));grid-auto-rows:minmax(120px, 1fr);gap:6px}
     .pip-card{container-type:inline-size;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--paper, #FFF4A8);border-radius:8px;color:#2A2718;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-    .pip-text{flex:1;min-height:0;display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:#2A2718;font:inherit;font-size:15px;line-height:1.65;padding:12px 14px 4px;overflow-y:auto}
+    .pip-text{flex:1;min-height:0;display:block;width:100%;border:0;outline:none;resize:none;background:transparent;color:#2A2718;font:inherit;font-size:10pt;line-height:1.65;padding:12px 14px 4px;overflow-y:auto}
     @container (max-width: 230px){ .pip-time{display:none} .pip-foot{justify-content:flex-end} }
     .pip-text::-webkit-scrollbar{width:6px}
     .pip-text::-webkit-scrollbar-thumb{background:rgba(42,39,24,.22);border-radius:3px}
@@ -1314,7 +1325,7 @@ service cloud.firestore {
       const c = pip.cards.get(m.id) || makePipCard(m.id);
       if (pip.list.children[i] !== c.root) pip.list.insertBefore(c.root, pip.list.children[i] || null);
       paintPaper(c.root, m);
-      c.ta.style.fontSize = getFont(m.id) + 'px';
+      c.ta.style.fontSize = getFont(m.id) + 'pt';
       if (!pipTyping(c.ta) && c.ta.value !== m.body) c.ta.value = m.body;
       c.time.textContent = relTime(m.updatedAt || m.createdAt || Date.now());
     });
