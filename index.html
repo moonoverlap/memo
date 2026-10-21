@@ -246,6 +246,15 @@ dialog.sheet::backdrop{background:var(--scrim)}
 textarea.input{height:130px;padding:10px 12px;font:12.5px/1.5 var(--mono);resize:vertical}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .msg{margin:0 0 10px;font-size:13px;color:var(--danger);min-height:0}
+.btn.google{background:var(--surface);color:var(--ink);border:1px solid var(--line);height:44px;padding:0 18px 0 14px;gap:10px;font-weight:600}
+.btn.google:hover{background:var(--hover)}
+.sec .sub-hint{margin:12px 0 0;font-size:12.5px;color:var(--faint);line-height:1.6}
+.email-login{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.email-login summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--muted);list-style:none}
+.email-login summary::-webkit-details-marker{display:none}
+.email-login summary::after{content:' ▾';font-size:11px}
+.email-login[open] summary{margin-bottom:12px}
+.email-login[open] summary::after{content:' ▴'}
 .msg:empty{display:none}
 .linkbtn{border:0;background:none;padding:0;color:var(--muted);font-size:13px;text-decoration:underline;cursor:pointer}
 
@@ -405,13 +414,23 @@ body.note-mode{padding:0}
   <div class="sheet-body">
     <section class="sec" id="secAccount" hidden>
       <h3>계정</h3>
-      <p><b id="acctEmail"></b> 계정으로 동기화 중이에요. PC와 폰에서 같은 계정으로 로그인하면 같은 메모가 보여요.</p>
-      <button class="btn ghost" id="logoutBtn" type="button">로그아웃</button>
+      <p><b id="acctEmail"></b><span id="acctVia"></span> 계정으로 동기화 중이에요. PC와 폰에서 같은 계정으로 로그인하면 같은 메모가 보여요.</p>
+      <div class="row">
+        <button class="btn google" id="linkGoogleBtn" type="button" hidden><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Google 계정 연결</button>
+        <button class="btn ghost" id="logoutBtn" type="button">로그아웃</button>
+      </div>
+      <p class="msg" id="acctMsg" role="alert" style="margin-top:10px"></p>
+      <p class="sub-hint" id="linkHint" hidden>Google 계정을 연결해 두면 다른 기기에서 비밀번호 없이 ‘Google로 로그인’만 눌러도 지금 메모가 그대로 보여요.</p>
     </section>
 
     <section class="sec" id="secAuth" hidden>
       <h3>로그인</h3>
-      <p>처음 쓰는 기기라면 <b>계정 만들기</b>, 이미 만든 계정이 있으면 같은 이메일로 <b>로그인</b>하세요.</p>
+      <p>Google 계정으로 로그인하면 PC와 폰이 같은 메모를 봐요.</p>
+      <button class="btn google" id="googleBtn" type="button"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Google로 로그인</button>
+      <p class="msg" id="googleMsg" role="alert" style="margin-top:10px"></p>
+      <p class="sub-hint">이미 이메일·비밀번호로 쓰던 메모가 있다면, 그 계정으로 로그인한 기기에서 설정 → 계정 → <b>Google 계정 연결</b>을 먼저 눌러 주세요. 그다음부터는 어느 기기든 Google로 로그인하면 같은 메모가 보여요.</p>
+      <details class="email-login" id="emailLogin">
+      <summary>이메일·비밀번호로 로그인</summary>
       <form id="authForm" novalidate>
         <div class="field"><label for="authEmail">이메일</label><input class="input" id="authEmail" type="email" autocomplete="username" inputmode="email"></div>
         <div class="field"><label for="authPw">비밀번호 (6자 이상)</label><input class="input" id="authPw" type="password" autocomplete="current-password"></div>
@@ -421,6 +440,7 @@ body.note-mode{padding:0}
           <button class="btn ghost" id="signupBtn" type="button">계정 만들기</button>
         </div>
       </form>
+      </details>
     </section>
 
     <section class="sec" id="secSetup" hidden>
@@ -555,6 +575,8 @@ service cloud.firestore {
     collapseBtn: $('#collapseBtn'), expandBtn: $('#expandBtn'), railNew: $('#railNew'), railFloat: $('#railFloat'),
     settingsBtn: $('#settingsBtn'), sheet: $('#sheet'), sheetClose: $('#sheetClose'),
     secAccount: $('#secAccount'), acctEmail: $('#acctEmail'), logoutBtn: $('#logoutBtn'),
+    acctVia: $('#acctVia'), linkGoogleBtn: $('#linkGoogleBtn'), acctMsg: $('#acctMsg'), linkHint: $('#linkHint'),
+    googleBtn: $('#googleBtn'), googleMsg: $('#googleMsg'),
     secAuth: $('#secAuth'), authForm: $('#authForm'), authEmail: $('#authEmail'), authPw: $('#authPw'),
     authMsg: $('#authMsg'), loginBtn: $('#loginBtn'), signupBtn: $('#signupBtn'),
     secSetup: $('#secSetup'), copyRules: $('#copyRules'), rulesCode: $('#rulesCode'),
@@ -1269,6 +1291,10 @@ service cloud.firestore {
     el.secAuth.hidden = !cfg || !!S.user || S.phase === 'fb-fail';
     el.secAccount.hidden = !S.user;
     el.acctEmail.textContent = S.user ? (S.user.email || '') : '';
+    const hasGoogle = !!(S.user && (S.user.providerData || []).some((p) => p && p.providerId === 'google.com'));
+    el.acctVia.textContent = hasGoogle ? ' (Google)' : '';
+    el.linkGoogleBtn.hidden = !S.user || hasGoogle;
+    el.linkHint.hidden = !S.user || hasGoogle;
     el.secReset.hidden = !cfg || !!EMBEDDED_FIREBASE_CONFIG;
     if (isStandalone()) {
       el.installText.textContent = '앱으로 실행 중이에요. 바탕화면이나 홈 화면 아이콘으로 바로 열 수 있어요.';
@@ -1283,7 +1309,7 @@ service cloud.firestore {
   }
   function openSettings() {
     renderSettings();
-    el.authMsg.textContent = ''; el.cfgMsg.textContent = '';
+    el.authMsg.textContent = ''; el.cfgMsg.textContent = ''; el.googleMsg.textContent = ''; el.acctMsg.textContent = '';
     if (typeof el.sheet.showModal === 'function') el.sheet.showModal(); else el.sheet.setAttribute('open', '');
   }
   function closeSettings() { if (el.sheet.open) el.sheet.close(); }
@@ -1319,6 +1345,87 @@ service cloud.firestore {
       el.authMsg.textContent = AUTH_MSG[code] || (code.indexOf('api-key') >= 0 ? 'firebaseConfig의 apiKey를 다시 확인해 주세요.' : '로그인하지 못했어요. (' + (code || '알 수 없는 오류') + ')');
     } finally {
       el.loginBtn.disabled = el.signupBtn.disabled = false;
+    }
+  }
+
+  /* ── Google 로그인 ── */
+  const REDIRECT_KEY = 'pocket-memo.google-redirect';
+  function googleProvider() {
+    const p = new window.firebase.auth.GoogleAuthProvider();
+    p.setCustomParameters({ prompt: 'select_account' });
+    return p;
+  }
+  function googleErr(e) {
+    const c = (e && e.code) || '';
+    if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request' || c === 'desk/cancelled' || c === 'auth/user-cancelled') return '로그인 창을 닫았어요. 다시 눌러 주세요.';
+    if (c === 'desk/timeout') return '5분이 지나 취소됐어요. 다시 눌러 주세요.';
+    if (c === 'desk/old') return 'Google 로그인은 새 PC 프로그램(1.0.1)부터 돼요. 새 설치파일로 한 번 다시 설치해 주세요.';
+    if (c === 'auth/credential-already-in-use') return '이 Google 계정은 이미 다른 포켓 메모 계정에 쓰이고 있어요. 그 메모를 보려면 로그아웃한 뒤 Google로 로그인하세요.';
+    if (c === 'auth/provider-already-linked') return '이미 Google 계정이 연결돼 있어요.';
+    if (c === 'auth/email-already-in-use' || c === 'auth/account-exists-with-different-credential') return '이 메일로 만든 이메일·비밀번호 계정이 있어요. 그 계정으로 로그인한 뒤 계정 → Google 계정 연결을 눌러 주세요.';
+    if (c === 'auth/unauthorized-domain') return '이 주소에서는 Google 로그인이 아직 허용되지 않았어요.';
+    if (c === 'auth/operation-not-allowed') return 'Firebase에서 Google 로그인을 켜 주세요.';
+    if (c === 'auth/network-request-failed') return '인터넷 연결을 확인해 주세요.';
+    if (c === 'auth/requires-recent-login') return '보안을 위해 로그아웃 후 다시 로그인한 다음 연결해 주세요.';
+    return 'Google 로그인을 마치지 못했어요. (' + (c || '알 수 없는 오류') + ')';
+  }
+  // PC 프로그램: 기본 브라우저에서 Google 로그인 → 결과만 프로그램으로 받아옴
+  async function googleCredentialFromDesktop() {
+    if (!DESK.googleSignIn) throw { code: 'desk/old' };
+    showToast('브라우저에서 Google 계정을 골라 주세요.');
+    const r = await DESK.googleSignIn();
+    if (!r || !r.ok || !r.idToken) throw { code: 'desk/' + ((r && r.code) || 'cancelled') };
+    return window.firebase.auth.GoogleAuthProvider.credential(r.idToken, r.accessToken || null);
+  }
+  async function signInGoogle() {
+    if (!fb) { el.googleMsg.textContent = '동기화 서버를 아직 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'; return; }
+    el.googleMsg.textContent = '';
+    el.googleBtn.disabled = true;
+    try {
+      if (DESK) {
+        await fb.auth.signInWithCredential(await googleCredentialFromDesktop());
+      } else {
+        try { await fb.auth.signInWithPopup(googleProvider()); }
+        catch (e) {
+          if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
+            ls.set(REDIRECT_KEY, '1');
+            await fb.auth.signInWithRedirect(googleProvider());
+            return;
+          }
+          throw e;
+        }
+      }
+      closeSettings();
+      showToast('Google 계정으로 로그인했어요. 메모를 맞추는 중이에요.');
+    } catch (e) {
+      el.googleMsg.textContent = googleErr(e);
+    } finally {
+      el.googleBtn.disabled = false;
+    }
+  }
+  async function linkGoogle() {
+    const u = fb && fb.auth.currentUser;
+    if (!u) return;
+    el.acctMsg.textContent = '';
+    el.linkGoogleBtn.disabled = true;
+    try {
+      if (DESK) {
+        await u.linkWithCredential(await googleCredentialFromDesktop());
+      } else {
+        try { await u.linkWithPopup(googleProvider()); }
+        catch (e) {
+          if (e && e.code === 'auth/popup-blocked') { ls.set(REDIRECT_KEY, '1'); await u.linkWithRedirect(googleProvider()); return; }
+          throw e;
+        }
+      }
+      await u.reload();
+      S.user = fb.auth.currentUser;
+      renderSettings();
+      showToast('Google 계정을 연결했어요. 이제 다른 기기에서 Google로 로그인하세요.');
+    } catch (e) {
+      el.acctMsg.textContent = googleErr(e);
+    } finally {
+      el.linkGoogleBtn.disabled = false;
     }
   }
 
@@ -1368,6 +1475,12 @@ service cloud.firestore {
       return;
     }
     S.phase = 'auth-wait';
+    if (ls.get(REDIRECT_KEY)) {
+      ls.del(REDIRECT_KEY);
+      fb.auth.getRedirectResult()
+        .then((r) => { if (r && r.user) showToast('Google 계정으로 로그인했어요.'); })
+        .catch((e) => showToast(googleErr(e)));
+    }
     fb.auth.onAuthStateChanged((u) => {
       S.user = u || null;
       if (u) {
@@ -1502,6 +1615,8 @@ service cloud.firestore {
 
   el.authForm.addEventListener('submit', (e) => { e.preventDefault(); doAuth('login'); });
   el.signupBtn.addEventListener('click', () => doAuth('signup'));
+  el.googleBtn.addEventListener('click', signInGoogle);
+  el.linkGoogleBtn.addEventListener('click', linkGoogle);
   el.logoutBtn.addEventListener('click', () => {
     if (!fb) return;
     flushPending();

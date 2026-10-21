@@ -7,6 +7,8 @@
 const { app, BrowserWindow, ipcMain, shell, Tray, Menu, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const crypto = require('crypto');
 
 // 개발 중에만 다른 주소로 시험할 수 있게 (설치본에서는 무시)
 const DEV_URL = !app.isPackaged && process.env.POCKET_MEMO_URL;
@@ -15,6 +17,7 @@ const APP_ORIGIN = new URL(APP_URL).origin;
 if (!app.isPackaged && process.env.POCKET_MEMO_USERDATA) app.setPath('userData', process.env.POCKET_MEMO_USERDATA);
 const ICON = path.join(__dirname, 'assets', 'icon.ico');
 const PRELOAD = path.join(__dirname, 'preload.js');
+const LOGIN_URL = new URL('desktop-login.html', APP_URL).href;
 const NOTE_MIN = { w: 160, h: 110 };
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const NOTE_ID = /^[A-Za-z0-9_-]{1,128}$/;
@@ -247,6 +250,60 @@ ipcMain.on('win:setColor', (e, hex) => {
 ipcMain.on('win:close', (e) => {
   const w = BrowserWindow.fromWebContents(e.sender);
   if (w && fromApp(e)) w.close();
+});
+
+/* ── Google 로그인: 기본 브라우저에서 로그인하고 결과만 이 프로그램으로 받는다 ──
+   (Google은 프로그램 안의 내장 창에서 하는 로그인을 막기 때문) */
+const resultPage = (text) => '<!doctype html><meta charset="utf-8"><title>포켓 메모</title>'
+  + '<body style="margin:0;height:100vh;display:grid;place-items:center;background:#F4F6FB;color:#121826;'
+  + 'font-family:\'Malgun Gothic\',sans-serif;text-align:center"><div style="padding:24px">'
+  + '<p style="font-size:18px;font-weight:700;margin:0 0 8px">포켓 메모</p>'
+  + '<p style="margin:0;color:#5B6680;font-size:14px;line-height:1.6">' + text + '</p></div>';
+let pendingLogin = null;
+ipcMain.handle('google:signin', (e) => {
+  if (!fromApp(e)) return { ok: false, code: 'denied' };
+  if (pendingLogin) pendingLogin.cancel();
+  const asker = BrowserWindow.fromWebContents(e.sender);
+  return new Promise((resolve) => {
+    const state = crypto.randomBytes(24).toString('base64url');
+    let settled = false;
+    const server = http.createServer((req, res) => {
+      const reply = (code, text) => {
+        res.writeHead(code, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(resultPage(text));
+      };
+      if (req.method !== 'POST' || req.url !== '/callback') { reply(404, '이 창은 닫아도 돼요.'); return; }
+      let body = '';
+      req.on('data', (d) => { body += d; if (body.length > 32768) req.destroy(); });
+      req.on('end', () => {
+        const p = new URLSearchParams(body);
+        const idToken = p.get('idToken') || '';
+        if (p.get('state') !== state || !idToken) { reply(400, '요청이 맞지 않아요. 포켓 메모에서 다시 시도해 주세요.'); return; }
+        reply(200, '로그인 정보를 포켓 메모로 보냈어요.<br>이 탭은 닫아도 돼요.');
+        finish({ ok: true, idToken, accessToken: p.get('accessToken') || '' });
+      });
+    });
+    const timer = setTimeout(() => finish({ ok: false, code: 'timeout' }), 5 * 60 * 1000);
+    function finish(result) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      pendingLogin = null;
+      setTimeout(() => server.close(), 1000);
+      if (result.ok && asker && !asker.isDestroyed()) {
+        if (asker.isMinimized()) asker.restore();
+        asker.show(); asker.focus(); asker.flashFrame(true);
+        setTimeout(() => { if (!asker.isDestroyed()) asker.flashFrame(false); }, 3000);
+      }
+      resolve(result);
+    }
+    pendingLogin = { cancel: () => finish({ ok: false, code: 'cancelled' }) };
+    server.on('error', () => finish({ ok: false, code: 'server' }));
+    server.listen(0, '127.0.0.1', () => {
+      const port = server.address().port;
+      shell.openExternal(LOGIN_URL + '?port=' + port + '&state=' + state);
+    });
+  });
 });
 
 /* ── 트레이 아이콘 ── */

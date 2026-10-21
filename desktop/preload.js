@@ -15,4 +15,5 @@ contextBridge.exposeInMainWorld('pocketDesktop', {
   setPinned: (v) => ipcRenderer.invoke('win:setPinned', !!v),
   setColor: (hex) => ipcRenderer.send('win:setColor', String(hex)),
   close: () => ipcRenderer.send('win:close'),
+  googleSignIn: () => ipcRenderer.invoke('google:signin'),
 });
