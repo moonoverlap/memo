@@ -1,0 +1,64 @@
+{
+  "name": "pocket-memo-desktop",
+  "productName": "PocketMemo",
+  "version": "1.0.0",
+  "description": "포켓 메모 - 메모마다 따로 띄우고 항상 위에 고정하는 PC 프로그램",
+  "author": "moonoverlap",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dist": "npm run pack && bash make-installer.sh",
+    "pack": "electron-builder --win dir --x64"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "com.moonoverlap.pocketmemo",
+    "productName": "PocketMemo",
+    "copyright": "moonoverlap",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "executableName": "PocketMemo"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "포켓 메모",
+      "uninstallDisplayName": "포켓 메모",
+      "artifactName": "PocketMemo-Setup-${version}.${ext}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "language": "1042",
+      "unicode": true
+    },
+    "electronLanguages": [
+      "ko",
+      "en-US"
+    ]
+  }
+}
